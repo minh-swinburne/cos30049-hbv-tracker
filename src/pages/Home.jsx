@@ -1,22 +1,72 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppHeader from "../components/AppHeader";
 import EntityInfo from "../components/EntityInfo";
 import SearchBar from "../components/SearchBar";
 import TransactionGraph from "../components/TransactionGraph";
 import TransactionTable from "../components/TransactionTable";
-import { mockGraphData } from "../data/Data";
+import { runQuery } from "../data/neo4jConfig";
 
 const Home = () => {
   const [selectedEntity, setSelectedEntity] = useState(null);
-  const [graphData, ] = useState(mockGraphData);
+  const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
+
+  useEffect(() => {
+    const fetchGraphData = async () => {
+      try {
+        const nodesQuery = `
+          MATCH (n:Address)
+          RETURN n.id AS id, n.type AS type
+        `;
+
+        const linksQuery = `
+          MATCH (a)-[r:TRANSACTION]->(b)
+          RETURN a.id AS from, b.id AS to, r.value AS value
+        `;
+
+        const nodesResult = await runQuery(nodesQuery);
+        const linksResult = await runQuery(linksQuery);
+
+        const nodes = nodesResult.map((record) => ({
+          id: record.get("id"),
+          type: record.get("type"),
+        }));
+
+        const links = linksResult.map((record) => ({
+          source: record.get("from"),
+          target: record.get("to"),
+          value: record.get("value"),
+        }));
+
+        setGraphData({ nodes, links });
+      } catch (error) {
+        console.error("Error fetching Neo4j data:", error);
+      }
+    };
+
+    fetchGraphData();
+  }, []);
 
   const handleSearch = (id) => {
-    const entity = mockGraphData.nodes.find((node) => node.id === id);
-    setSelectedEntity(entity);
+    const entity = graphData.nodes.find((node) => node.id === id);
+
+    if (entity) {
+      setSelectedEntity(entity);
+      handleNodeClick(entity); // Syncs search with table data
+    } else {
+      alert("Entity not found. Please check the ID and try again.");
+    }
   };
 
   const handleNodeClick = (node) => {
     setSelectedEntity(node);
+
+    // Filter transactions where the clicked node is either source or target
+    const relatedTransactions = graphData.links.filter(
+      (link) => link.source === node.id || link.target === node.id
+    );
+
+    setFilteredTransactions(relatedTransactions);
   };
 
   return (
@@ -59,11 +109,12 @@ const Home = () => {
         )}
 
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <TransactionGraph data={graphData} onNodeClick={handleNodeClick} />
+          <TransactionGraph onNodeClick={handleNodeClick} />
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-6">
-          <TransactionTable transactions={graphData?.edges ?? []} />
+          <h2 className="text-xl font-semibold mb-4">Transaction Details</h2>
+          <TransactionTable transactions={filteredTransactions} />
         </div>
       </main>
 

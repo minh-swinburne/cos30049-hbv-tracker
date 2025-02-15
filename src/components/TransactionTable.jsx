@@ -15,22 +15,13 @@ const TransactionTable = ({ transactions }) => {
         <thead className="bg-slate-50">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-              From
+              Source
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-              To
+              Target
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Batch
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Quantity
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Timestamp
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Hash
+              Value
             </th>
           </tr>
         </thead>
@@ -44,16 +35,7 @@ const TransactionTable = ({ transactions }) => {
                 {tx.target?.name || tx.target}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                {tx.batch}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                {tx.quantity}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                {tx.timestamp ? new Date(tx.timestamp).toLocaleString() : "N/A"}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900">
-                {tx.hash}
+                {tx.value}
               </td>
             </tr>
           ))}
