@@ -1,28 +1,20 @@
-import React, { useState } from "react";
+import { AlertCircle } from "lucide-react";
+import React from "react";
 import {
-  BarChart,
   Bar,
-  LineChart,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
   Line,
-  PieChart,
+  LineChart,
   Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Cell,
 } from "recharts";
-import {
-  Info,
-  Shield,
-  Calendar,
-  AlertCircle,
-  ChevronDown,
-  Search,
-  Map,
-} from "lucide-react";
 
 // Mock data for visualizations
 const vaccineUptakeData = [
@@ -51,20 +43,20 @@ const effectivenessData = [
 const COLORS = ["#0d9488", "#14b8a6", "#2dd4bf", "#5eead4"];
 
 const NavigationBar = () => (
-  <nav className="bg-teal-600 text-white p-4 sticky top-0 z-50">
+  <nav className="bg-blue-600 text-white p-4 sticky top-0 z-50">
     <div className="container mx-auto flex justify-between items-center">
       <h1 className="text-2xl font-bold">HPV Vaccine Analytics</h1>
       <div className="flex gap-6">
-        <a href="#overview" className="hover:text-teal-200">
+        <a href="#overview" className="hover:text-blue-200">
           Overview
         </a>
-        <a href="#statistics" className="hover:text-teal-200">
+        <a href="#statistics" className="hover:text-blue-200">
           Statistics
         </a>
-        <a href="#trends" className="hover:text-teal-200">
+        <a href="#trends" className="hover:text-blue-200">
           Trends
         </a>
-        <a href="#impact" className="hover:text-teal-200">
+        <a href="#impact" className="hover:text-blue-200">
           Impact
         </a>
       </div>
@@ -74,8 +66,8 @@ const NavigationBar = () => (
 
 const StatCard = ({ title, value, description }) => (
   <div className="bg-white p-6 rounded-lg shadow-md">
-    <h3 className="text-xl font-semibold text-teal-700 mb-2">{title}</h3>
-    <div className="text-3xl font-bold text-teal-600 mb-2">{value}</div>
+    <h3 className="text-xl font-semibold text-blue-700 mb-2">{title}</h3>
+    <div className="text-3xl font-bold text-blue-600 mb-2">{value}</div>
     <p className="text-gray-600">{description}</p>
   </div>
 );
@@ -155,12 +147,12 @@ const App = () => {
       <NavigationBar />
 
       {/* Hero Section */}
-      <div className="bg-teal-50 py-16">
+      <div className="bg-blue-50 py-16">
         <div className="container mx-auto text-center">
-          <h1 className="text-4xl font-bold text-teal-800 mb-4">
+          <h1 className="text-4xl font-bold text-blue-800 mb-4">
             HPV Vaccination Data Analytics
           </h1>
-          <p className="text-xl text-teal-600 mb-8">
+          <p className="text-xl text-blue-600 mb-8">
             Exploring vaccination trends, impact, and effectiveness through data
           </p>
         </div>
@@ -203,7 +195,7 @@ const App = () => {
           <ul className="space-y-4">
             <li className="flex items-start">
               <AlertCircle
-                className="text-teal-600 mr-3 mt-1 flex-shrink-0"
+                className="text-blue-600 mr-3 mt-1 flex-shrink-0"
                 size={20}
               />
               <span>
@@ -212,14 +204,14 @@ const App = () => {
             </li>
             <li className="flex items-start">
               <AlertCircle
-                className="text-teal-600 mr-3 mt-1 flex-shrink-0"
+                className="text-blue-600 mr-3 mt-1 flex-shrink-0"
                 size={20}
               />
               <span>Highest uptake observed in the 9-12 age group</span>
             </li>
             <li className="flex items-start">
               <AlertCircle
-                className="text-teal-600 mr-3 mt-1 flex-shrink-0"
+                className="text-blue-600 mr-3 mt-1 flex-shrink-0"
                 size={20}
               />
               <span>
@@ -231,7 +223,7 @@ const App = () => {
       </div>
 
       {/* Footer */}
-      <footer className="bg-teal-800 text-white py-8 mt-12">
+      <footer className="bg-blue-800 text-white py-8 mt-12">
         <div className="container mx-auto text-center">
           <p>© 2024 HPV Vaccine Analytics. Data sourced from WHO and CDC.</p>
         </div>

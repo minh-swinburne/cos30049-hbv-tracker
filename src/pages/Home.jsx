@@ -1,30 +1,10 @@
 import { useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import AppHeader from "../components/AppHeader";
 import EntityInfo from "../components/EntityInfo";
 import SearchBar from "../components/SearchBar";
 import TransactionGraph from "../components/TransactionGraph";
 import TransactionTable from "../components/TransactionTable";
 import { mockGraphData } from "../data/Data";
-
-const vaccineUptakeData = [
-  { year: 2018, rate: 51.1, totalVaccinated: 15000 },
-  { year: 2019, rate: 54.2, totalVaccinated: 16500 },
-  { year: 2020, rate: 58.6, totalVaccinated: 17800 },
-  { year: 2021, rate: 61.7, totalVaccinated: 19200 },
-  { year: 2022, rate: 75.4, totalVaccinated: 23500 },
-  { year: 2023, rate: 77.1, totalVaccinated: 24100 },
-];
 
 const Home = () => {
   const [selectedEntity, setSelectedEntity] = useState(null);
@@ -41,17 +21,10 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-xl">
-        <div className="container mx-auto px-6 py-12">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-center">
-            HPV Vaccine Distribution Tracker
-          </h1>
-          <p className="text-xl mt-4 text-center text-blue-100 max-w-2xl mx-auto">
-            Ensuring transparency & efficiency in HPV vaccine distribution
-            through blockchain technology
-          </p>
-        </div>
-      </header>
+      <AppHeader
+        title="HPV Vaccine Distribution Tracker"
+        description="Ensuring transparency & efficiency in HPV vaccine distribution through blockchain technology"
+      />
 
       <main className="container mx-auto px-4 py-8 md:px-6">
         <section className="mb-12 max-w-4xl mx-auto">
@@ -84,50 +57,6 @@ const Home = () => {
             <EntityInfo entity={selectedEntity} />
           </div>
         )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
-            <h3 className="text-xl font-semibold mb-6 text-blue-900">
-              Vaccination Rate Trends
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={vaccineUptakeData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="year" stroke="#64748B" />
-                <YAxis domain={[0, 100]} stroke="#64748B" />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="rate"
-                  stroke="#0D9488"
-                  strokeWidth={2}
-                  name="Vaccination Rate (%)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
-            <h3 className="text-xl font-semibold mb-6 text-blue-900">
-              Total Vaccinated Individuals
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={vaccineUptakeData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="year" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
-                <Tooltip />
-                <Legend />
-                <Bar
-                  dataKey="totalVaccinated"
-                  fill="#2563EB"
-                  name="Total Vaccinated"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <TransactionGraph data={graphData} onNodeClick={handleNodeClick} />

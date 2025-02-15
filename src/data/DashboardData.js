@@ -21,4 +21,4 @@ export const effectivenessData = [
   { type: "Throat Cancer", prevention: 88 },
 ];
 
-export const COLORS = ["#0d9488", "#14b8a6", "#2dd4bf", "#5eead4"];
+export const COLORS = ["#1c398e", "#1447e6", "#2b7fff", "#8ec5ff"];
