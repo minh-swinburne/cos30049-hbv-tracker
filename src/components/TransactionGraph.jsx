@@ -93,12 +93,15 @@ const TransactionGraph = forwardRef(({ graphData, onNodeClick }, ref) => {
 
       {/* Zoom Controls */}
       <div className="absolute bottom-2 left-2 flex flex-col gap-2 bg-white p-2 rounded-lg shadow">
-        <button onClick={zoomIn} className="p-2 bg-gray-200 text-white rounded">
+        <button
+          onClick={zoomIn}
+          className="p-2 bg-sky-100 hover:bg-sky-200 cursor-pointer text-white rounded"
+        >
           ➕
         </button>
         <button
           onClick={zoomOut}
-          className="p-2 bg-gray-200 text-white rounded"
+          className="p-2 bg-sky-100 hover:bg-sky-200 cursor-pointer text-white rounded"
         >
           ➖
         </button>
