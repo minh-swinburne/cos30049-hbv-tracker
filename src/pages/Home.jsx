@@ -72,19 +72,19 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <AppHeader
-        title="HPV Vaccine Distribution Tracker"
-        description="Ensuring transparency & efficiency in HPV vaccine distribution through blockchain technology"
+        title="HBV Vaccine Distribution Tracker"
+        description="Ensuring transparency & efficiency in HBV vaccine distribution through blockchain technology"
       />
 
       <main className="container mx-auto px-4 py-8 md:px-6">
         <section className="mb-12 max-w-4xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold mb-6 text-blue-900">
-            Why Track HPV Vaccine Distribution?
+            Why Track HBV Vaccine Distribution?
           </h2>
           <div className="bg-white rounded-xl shadow-md p-6 space-y-4">
             <p className="text-lg text-slate-700 leading-relaxed">
-              The HPV vaccine is crucial in preventing cervical cancer and other
-              HPV-related diseases. Effective tracking ensures timely delivery
+              The HBV vaccine is crucial in preventing cervical cancer and other
+              HBV-related diseases. Effective tracking ensures timely delivery
               to healthcare facilities, preventing shortages and ensuring
               equitable distribution.
             </p>
@@ -121,7 +121,7 @@ const Home = () => {
       <footer className="bg-gradient-to-r from-blue-800 to-blue-900 text-white mt-12">
         <div className="container mx-auto px-6 py-8">
           <p className="text-center text-blue-100">
-            &copy; 2025 HPV Vaccine Tracker | Transparency & Efficiency in
+            &copy; 2025 HBV Vaccine Tracker | Transparency & Efficiency in
             Distribution
           </p>
         </div>

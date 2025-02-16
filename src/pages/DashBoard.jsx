@@ -26,8 +26,8 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <AppHeader
-        title="HPV Vaccine Distribution Analytics"
-        description="A comprehensive dashboard to track HPV vaccination trends"
+        title="HBV Vaccine Distribution Analytics"
+        description="A comprehensive dashboard to track HBV vaccination trends"
       />
 
       {/* Main Content */}
@@ -37,7 +37,7 @@ const Dashboard = () => {
           <StatCard
             title="Global Coverage"
             value="77.1%"
-            description="Current HPV vaccination coverage rate worldwide"
+            description="Current HBV vaccination coverage rate worldwide"
           />
           <StatCard
             title="Lives Protected"
@@ -47,7 +47,7 @@ const Dashboard = () => {
           <StatCard
             title="Effectiveness"
             value="90%+"
-            description="Prevention rate against HPV-related cancers"
+            description="Prevention rate against HBV-related cancers"
           />
         </div>
 
@@ -158,7 +158,7 @@ const Dashboard = () => {
       {/* Footer */}
       <footer className="bg-blue-800 text-white py-8 mt-12">
         <div className="container mx-auto text-center">
-          <p>© 2024 HPV Vaccine Analytics. Data sourced from WHO and CDC.</p>
+          <p>© 2024 HBV Vaccine Analytics. Data sourced from WHO and CDC.</p>
         </div>
       </footer>
     </div>
