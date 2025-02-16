@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AppHeader from "../components/AppHeader";
 import EntityInfo from "../components/EntityInfo";
 import SearchBar from "../components/SearchBar";
@@ -11,6 +11,8 @@ const Home = () => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [filteredTransactions, setFilteredTransactions] = useState([]);
 
+  const graphRef = useRef(null);
+
   useEffect(() => {
     const fetchGraphData = async () => {
       try {
@@ -21,7 +23,7 @@ const Home = () => {
 
         const linksQuery = `
           MATCH (a)-[r:TRANSACTION]->(b)
-          RETURN a.id AS from, b.id AS to, r.value AS value
+          RETURN a.id AS source, b.id AS target, r.value AS value
         `;
 
         const nodesResult = await runQuery(nodesQuery);
@@ -33,8 +35,8 @@ const Home = () => {
         }));
 
         const links = linksResult.map((record) => ({
-          source: record.get("from"),
-          target: record.get("to"),
+          source: record.get("source"),
+          target: record.get("target"),
           value: record.get("value"),
         }));
 
@@ -62,12 +64,23 @@ const Home = () => {
     setSelectedEntity(node);
 
     // Filter transactions where the clicked node is either source or target
+    console.log("Filtering transactions for node:", graphData.links);
     const relatedTransactions = graphData.links.filter(
-      (link) => link.source === node.id || link.target === node.id
+      (link) => link.source.id === node.id || link.target.id === node.id
     );
 
     setFilteredTransactions(relatedTransactions);
   };
+
+  const handleEntityClose = () => {
+    console.log("Closing entity info");
+    setSelectedEntity(null);
+    setFilteredTransactions([])
+    if (graphRef.current) {
+      console.log("Resetting graph");
+      graphRef.current.reset(); // Reset the graph when closing the entity info
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -104,12 +117,12 @@ const Home = () => {
 
         {selectedEntity && (
           <div className="mb-8">
-            <EntityInfo entity={selectedEntity} />
+            <EntityInfo entity={selectedEntity} onClose={handleEntityClose} />
           </div>
         )}
 
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <TransactionGraph onNodeClick={handleNodeClick} />
+          <TransactionGraph ref={graphRef} graphData={graphData} onNodeClick={handleNodeClick} />
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-6">

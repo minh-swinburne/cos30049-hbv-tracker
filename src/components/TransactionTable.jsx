@@ -1,4 +1,4 @@
-import React from "react";
+import PropTypes from "prop-types";
 
 const TransactionTable = ({ transactions }) => {
   if (!transactions || transactions.length === 0) {
@@ -29,10 +29,10 @@ const TransactionTable = ({ transactions }) => {
           {transactions.map((tx, index) => (
             <tr key={tx.hash || index} className="hover:bg-slate-50">
               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                {tx.source?.name || tx.source}
+                {tx.source?.id}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                {tx.target?.name || tx.target}
+                {tx.target?.id}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                 {tx.value}
@@ -43,6 +43,22 @@ const TransactionTable = ({ transactions }) => {
       </table>
     </div>
   );
+};
+
+TransactionTable.displayName = "TransactionTable";
+TransactionTable.propTypes = {
+  transactions: PropTypes.arrayOf(
+    PropTypes.shape({
+      hash: PropTypes.string,
+      source: PropTypes.shape({
+        id: PropTypes.string,
+      }),
+      target: PropTypes.shape({
+        id: PropTypes.string,
+      }),
+      value: PropTypes.number,
+    })
+  ),
 };
 
 export default TransactionTable;
