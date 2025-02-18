@@ -1,3 +1,16 @@
+{
+  /* 
+  Authors: 
+  - Le Luu Phuoc Thinh
+  - Nguyen Thi Thanh Minh
+  - Nguyen Quy Hung
+  - Vo Thi Kim Huyen
+  - Dinh Danh Nam
+
+  Group 3 - COS30049
+*/
+}
+
 const AppHeader = ({ title, description }) => {
   return (
     <header className="bg-gradient-to-r from-blue-100 to-blue-300 text-white shadow-xl">
@@ -11,6 +24,6 @@ const AppHeader = ({ title, description }) => {
       </div>
     </header>
   );
-}
+};
 
 export default AppHeader;

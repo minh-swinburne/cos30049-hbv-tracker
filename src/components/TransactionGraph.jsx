@@ -1,3 +1,16 @@
+{
+  /* 
+  Authors: 
+  - Le Luu Phuoc Thinh
+  - Nguyen Thi Thanh Minh
+  - Nguyen Quy Hung
+  - Vo Thi Kim Huyen
+  - Dinh Danh Nam
+
+  Group 3 - COS30049
+*/
+}
+
 import { useEffect, useState } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import { runQuery } from "../data/neo4jConfig";
