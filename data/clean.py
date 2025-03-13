@@ -4,11 +4,13 @@ import pandas as pd
 url = "https://raw.githubusercontent.com/minh-swinburne/cos30049-hbv-tracker/refs/heads/full/data/data/sampled_data.csv"
 df = pd.read_csv(url)
 
-# Fill missing 'vacplace' with "Other"
-df["vacplace"] = df["vacplace"].fillna("-", inplace=True)
+# Fill missing 'vacplace' with "-"
+df["vacplace"] = df["vacplace"].fillna("-")
+df["district_reg"] = df["district_reg"].fillna("-")
+
 # Replace missing or incorrect 'vacplace_type' with "Other"
 df["vacplace_type"] = df["vacplace_type"].replace(
-    ["Dia diem khac", None, "nan"], "Khác", inplace=True
+    ["Dia diem khac", None, "nan"], "Khác"
 )
 
 # Save cleaned data
