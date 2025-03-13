@@ -6,9 +6,20 @@ DB_USER = "cos30049_user"
 DB_PASS = "cos30049-swb"
 DB_NAME = "cos30049"
 DB_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
+FILENAME = "hepb_data_long.parquet"
+
+def read_parquet_file(filename):
+    return pd.read_parquet(f"data/{filename}")
+
+def read_csv_file(filename):
+    return pd.read_csv(f"data/{filename}")
 
 # Read parquet file
-df = pd.read_parquet("data/hepb_data_long.parquet")
+df = (
+    read_parquet_file(FILENAME)
+    if FILENAME.endswith(".parquet")
+    else read_csv_file(FILENAME)
+)
 
 # Create a connection to the database
 engine = create_engine(DB_URL)
