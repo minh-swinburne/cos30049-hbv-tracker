@@ -1,0 +1,11 @@
+pid,vacname,vacdate,vactype,vacplace,vacplace_type,province_reg,district_reg,commune_reg,sex,dob,ethnic
+221194720170013,Quinvaxem,2017-07-20T00:00:00.000Z,TCCD,TYT Đồng Việt,TCMR,Bắc Giang,Yên Dũng,Đồng Việt,nam,2017-02-03T00:00:00.000Z,Kinh
+2221031520170032,Quinvaxem,2017-07-20T00:00:00.000Z,TCCD,TYT Tam Tiến,TCMR,Bắc Giang,Yên Thế,Tam Tiến,nu,2017-04-21T00:00:00.000Z,Kinh
+3221031520170019,Quinvaxem,2017-07-20T00:00:00.000Z,TCCD,TYT Tam Tiến,TCMR,Bắc Giang,Yên Thế,Tam Tiến,nam,2017-03-09T00:00:00.000Z,Kinh
+4221031520170025,Quinvaxem,2017-07-20T00:00:00.000Z,TCCD,TYT Tam Tiến,TCMR,Bắc Giang,Yên Thế,Tam Tiến,nam,2017-03-30T00:00:00.000Z,Kinh
+5221131920170027,Quinvaxem,2017-07-19T00:00:00.000Z,TCCD,TYT Vĩnh Khương-đã sát nhập,TCMR,Bắc Giang,Sơn Động,Vĩnh An,nam,2017-04-14T00:00:00.000Z,Kinh
+6221111520170015,Quinvaxem,2017-07-20T00:00:00.000Z,TCCD,TYT Đào Mỹ,TCMR,Bắc Giang,Lạng Giang,Đào Mỹ,nam,2017-02-05T00:00:00.000Z,Kinh
+7221194720170027,Quinvaxem,2017-07-20T00:00:00.000Z,TCCD,TYT Đồng Việt,TCMR,Bắc Giang,Yên Dũng,Đồng Việtnu2017-03-02T00:00:00.000Z,Kinh
+8221193520170084,Quinvaxem,2017-07-20T00:00:00.000Z,TCCD,TYT Quỳnh Sơn,TCMR,Bắc Giang,Yên Dũng,Yên Lư,nam,2017-04-08T00:00:00.000Z,Kinh
+9221194720170001,Quinvaxem,2017-07-20T00:00:00.000Z,TCCD,TYT Đồng Việt,TCMR,Bắc Giang,Yên Dũng,Đồng Việt,nam,2017-05-14T00:00:00.000Z,Kinh
+10221090320170003,Quinvaxem,2017-07-20T00:00:00.000Z,TCCD,TYT Đồng Tân,TCMR,Bắc Giang,Hiệp Hòa,Đồng Tân,nam,2017-04-17T00:00:00.000Z,Kinh

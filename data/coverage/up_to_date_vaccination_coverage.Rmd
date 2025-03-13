@@ -1,0 +1,639 @@
+---
+title: "Up-to-date vaccination coverage"
+author: "Tran Thai Hung"
+date: "2023-12-27"
+output: html_document
+---
+
+# Hepatitis B Vaccine Overview
+
+## Classification of HepB Vaccine:
+
+1.  **Single-Antigen Hepatitis B:**
+    -   ENGERIX-B
+    -   Euvax B
+    -   Gene-Hbvax
+    -   Heberbiovac HB
+    -   Hep B Vaccine
+    -   Hep B Vaccine for Newborn
+    -   Hepavax-Gene TF
+2.  **Combined Hepatitis A and B Vaccine:**
+    -   Twinrix
+3.  **4 in 1 (DTaP-HepB Vaccine):**
+    -   TRITANRIX-HB
+4.  **5 in 1 (DTaP-HepB-IPV Vaccine):**
+    -   Quinvaxem
+    -   SII
+5.  **6 in 1 (DTaP-IPV-Hib-HepB):**
+    -   Hexaxim
+    -   Infanrix Hexa
+
+## Age-Specific Dose for HepB Vaccine:
+
+-   Only single-component vaccines should be used for the birth dose and doses administered before age 6 weeks. (Source: [CDC](https://www.cdc.gov/vaccines/pubs/pinkbook/hepb.html))
+
+-   Combined hepatitis A and B vaccine is licensed for children from 1 year old. (Source: [VNVC](https://vnvc.vn/twinrix-vac-xin-phong-viem-gan-ab/))
+
+-   4 in 1, 5 in 1, and 6 in 1 vaccines are licensed for children aged 6 weeks through 6 years. (Source: [CDC](https://www.cdc.gov/vaccines/pubs/pinkbook/hepb.html))
+
+-   According to the Vietnamese vaccination schedule, 4 in 1, 5 in 1, and 6 in 1 vaccines should be administered in months 2, 3, 4. (Source: [Tiem Chung Mo Rong](https://www.tiemchungmorong.vn/vi/content/lich-tiem-chung-cac-vac-xin-trong-chuong-trinh-tiem-chung-mo-rong.html))
+
+```{r library, message=FALSE, warning=FALSE, paged.print=FALSE}
+library(tidyverse)
+library(readxl)
+library(writexl)
+library(janitor)
+library(Hmisc)
+library(arrow)
+library(gtsummary)
+library(plotly)
+library(lubridate)
+library(data.table)
+library(summarytools)
+library(here)
+```
+
+## I. Import data, create new variables
+
+### Import data
+
+```{r import data, remove boostrix, filter vacdate}
+# Import and review data
+data <- read_parquet(here::here("data/hepb_data_long.parquet")) %>% collect()
+print(data)
+str(data)
+
+# Remove Boostrix, not HepB vaccine
+data <- data %>% filter(vacname != "Boostrix")
+
+# Check the number of entries not within the data collection time interval
+data %>% filter(year(vacdate) < 2014 | year(vacdate) > 2022) %>% nrow()
+
+# Select only injection correct entries from 2014 to 2022
+data <- data %>% filter(year(vacdate) >= 2014 & year(vacdate) <= 2022)
+```
+
+### Check missing values
+
+```{r check missing values}
+#check missing values
+missing_values <- is.na(data)
+missing_counts <- colSums(is.na(data))
+rows_with_missing <- data[!complete.cases(data), ]
+print(rows_with_missing)
+```
+
+### Create new variables: year_dob and year_vac
+
+year_dob and year_vac are the years in which the child was born and vaccinated, respectively.
+
+```{r create new variables year_dob and year_vac}
+# Mutate columns for year of birth and year of vaccination
+data <- data %>% mutate(year_dob = year(dob), year_vac = year(vacdate))
+```
+
+### Create a new variable: vac_age
+
+Representing the age in days at which the child received the vaccine.
+
+```{r calculate_vac_age}
+data <- data %>% mutate(vac_age = difftime(vacdate, dob, units = "days"))
+
+```
+
+### Create a new variable: vac_month
+
+Representing the month after birth that the child receives the vaccine.
+
+```{r create_vac_month}
+data <- data %>% mutate(vac_month = case_when(
+  vac_age < 0 ~ NA,
+  vac_age <= 1 ~ -2,
+  vac_age <= 7 & vac_age > 1 ~ -1,
+  vac_age < 30 & vac_age > 7 ~ 0,
+  vac_age >= 30 & vac_age < 60 ~ 1,
+  vac_age >= 60 & vac_age < 90 ~ 2,
+  vac_age >= 90 & vac_age < 120 ~ 3,
+  vac_age >= 120 & vac_age < 150 ~ 4,
+  vac_age >= 150 & vac_age < 180 ~ 5,
+  vac_age >= 180 & vac_age < 210 ~ 6,
+  vac_age >= 210 & vac_age < 240 ~ 7,
+  vac_age >= 240 & vac_age < 270 ~ 8,
+  vac_age >= 270 & vac_age < 300 ~ 9,
+  vac_age >= 300 & vac_age < 330 ~ 10,
+  vac_age >= 330 ~ 11
+))
+```
+
+### Create a new variable: region
+
+Vietnam is officially divided into six regions ([source1](https://nld.com.vn/thoi-su/phan-6-vung-kinh-te-xa-hoi-de-xuat-tach-thanh-cac-tieu-vung-20220914104110389.htm#:~:text=Hi%E1%BB%87n%20n%C6%B0%E1%BB%9Bc%20ta%20%C4%91ang%20ph%C3%A2n,%C4%90%E1%BB%93ng%20b%E1%BA%B1ng%20s%C3%B4ng%20C%E1%BB%ADu%20Long.),[source2](https://dangcongsan.vn/kinh-te/van-su-dung-phuong-an-phan-chia-6-vung-kinh-te-xa-hoi-617165.html), [source3](https://en.nhandan.vn/nhan-dan-unveils-special-coverage-on-vietnams-six-regions-post123521.html).)
+
+#### 1. The Red River Delta region (11 Provinces)
+
+-   "Hà Nội", "Vĩnh Phúc", "Bắc Ninh", "Quảng Ninh", "Hải Dương", "Hải Phòng", "Hưng Yên", "Thái Bình", "Hà Nam", "Nam Định", "Ninh Bình"
+
+#### 2. The Northern Midland and Mountainous region (14 Provinces)
+
+-   "Hà Giang", "Cao Bằng", "Bắc Kạn", "Tuyên Quang", "Lào Cai", "Yên Bái", "Thái Nguyên", "Lạng Sơn", "Bắc Giang", "Phú Thọ", "Điện Biên", "Lai Châu", "Sơn La", "Hòa Bình"
+
+#### 3. The North Central and Central Coastal region (14 Provinces)
+
+-   "Thanh Hóa", "Nghệ An", "Hà Tĩnh", "Quảng Bình", "Quảng Trị", "Thừa Thiên Huế", "Đà Nẵng", "Quảng Nam", "Quảng Ngãi", "Bình Định", "Phú Yên", "Khánh Hòa", "Ninh Thuận", "Bình Thuận"
+
+#### 4. The Central Highlands region (5 Provinces)
+
+-   "Kon Tum", "Gia Lai", "Đắk Lắk", "Đắk Nông", "Lâm Đồng"
+
+#### 5. The Southeast region (6 Provinces)
+
+-   "Bình Phước", "Tây Ninh", "Bình Dương", "Đồng Nai", "Bà Rịa - Vũng Tàu", "Thành phố Hồ Chí Minh"
+
+#### 6. The Mekong Delta region (13 Provinces)
+
+-   "Long An", "Tiền Giang", "Bến Tre", "Trà Vinh", "Vĩnh Long", "Đồng Tháp", "An Giang", "Kiên Giang", "Cần Thơ", "Hậu Giang", "Sóc Trăng", "Bạc Liêu", "Cà Mau"
+
+```{r create new variable region}
+data <- data %>% 
+  mutate(region = case_when(
+    province_reg %in% c("Hà Nội", "Vĩnh Phúc", "Bắc Ninh", "Quảng Ninh", "Hải Dương", "Hải Phòng", "Hưng Yên", "Thái Bình", "Hà Nam", "Nam Định", "Ninh Bình") ~ "RRD",
+    province_reg %in% c("Hà Giang", "Cao Bằng", "Bắc Kạn", "Tuyên Quang", "Lào Cai", "Yên Bái", "Thái Nguyên", "Lạng Sơn", "Bắc Giang", "Phú Thọ", "Điện Biên", "Lai Châu", "Sơn La", "Hòa Bình") ~ "NMM",
+    province_reg %in% c("Thanh Hóa", "Nghệ An", "Hà Tĩnh", "Quảng Bình", "Quảng Trị", "Thừa Thiên Huế", "Đà Nẵng", "Quảng Nam", "Quảng Ngãi", "Bình Định", "Phú Yên", "Khánh Hòa", "Ninh Thuận", "Bình Thuận") ~ "NCC", 
+    province_reg %in% c("Kon Tum", "Gia Lai", "Đắk Lắk", "Đắk Nông", "Lâm Đồng") ~ "CHL",
+    province_reg %in% c("Bình Phước", "Tây Ninh", "Bình Dương", "Đồng Nai", "Bà Rịa - Vũng Tàu", "Thành phố Hồ Chí Minh") ~ "SE",
+    province_reg %in% c("Long An", "Tiền Giang", "Bến Tre", "Trà Vinh", "Vĩnh Long", "Đồng Tháp", "An Giang", "Kiên Giang", "Cần Thơ", "Hậu Giang", "Sóc Trăng", "Bạc Liêu", "Cà Mau") ~ "MKD",
+    .default = NULL
+  )) %>%
+  mutate(region = factor(region, levels = c("RRD", "NMM", "NCC", "CHL", "SE", "MKD")))
+
+```
+
+### Create a new variable: vacgroup
+
+```{r classify vaccine group }
+# Classify vacname and create a new variable vacgroup
+data <- data %>% 
+  mutate(vacgroup = case_when(
+    vacname %in% c("ENGERIX-B", "Euvax B", "Gene-Hbvax", "H-B-VAX II", "HBVaxPRO", "r-HBvax", "Heberbiovac HB", "Hep B vaccine", "Hep B vaccine for newborn", "SCI-B-VAC", "Hepavax-Gene TF") ~ "single",
+    vacname == "Twinrix" ~ "hepab",
+    vacname == "TRITANRIX-HB" ~ "4_in_1",
+    vacname %in% c("Quinvaxem", "SII") ~ "5_in_1",
+    vacname %in% c("Hexaxim", "Hexavac", "Infanrix Hexa") ~ "6_in_1",
+    .default = NULL  # default case
+  ))
+```
+
+### Create a new varialbe: vacname2
+
+```{r create vacname2}
+data <- data %>% mutate(vacname2 = case_when(
+  vacname %in% c("ENGERIX-B", "Euvax B", "Gene-Hbvax", "Heberbiovac HB", "Hep B vaccine", "Hepavax-Gene TF") & vac_age < 30 ~ "possible_hep_b_vaccine_for_newborn",
+  .default = vacname)) 
+data %>% filter(vacname2 == "possible_hep_b_vaccine_for_newborn") %>% nrow()
+data %>% filter(vacname2 == "Hep B vaccine for newborn") %>% nrow()
+```
+
+### Create province vaccination coverage function
+
+Create a province vaccination coverage function based on the number of births for each province in Vietnam, using data from GSO: <https://www.gso.gov.vn/dan-so/>. Download the data and save it as 'province.xlsx'.
+
+```{r province create covarage function}
+province_coverage_plot <- function(data_temp) {
+  province <- read_xlsx(here::here("data/province.xlsx"))
+  frequency_table <- table(data_temp$province_reg, data_temp$year_dob)
+  frequency_table <- as.data.frame(frequency_table)
+  frequency_table <- frequency_table %>% rename(province_reg = Var1 , year_dob = Var2)
+
+  province <- left_join(x = frequency_table, y = province, by = c("province_reg","year_dob" ))
+  province <- province %>% mutate(coverage = (Freq/birth_number)*100)
+  province <- province %>% mutate(coverage = format(round(coverage, 1), nsmall = 1, scientific = FALSE))
+  province_wide <- province %>% select(province_reg, year_dob, coverage) %>% pivot_wider(id_cols = province_reg, names_from = year_dob, values_from = coverage)
+
+  gg <- ggplot(province, aes(x = factor(year_dob), y = as.numeric(coverage), fill = factor(province_reg))) +
+    geom_col() +
+    labs(title = "Coverage by Year",
+         x = "Year",
+         y = "Coverage") +
+    facet_wrap(~province_reg) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.text.y = element_text(size = 5)) +
+    scale_y_continuous(breaks = seq(0, max(province$coverage), by = 20))
+
+  # Convert ggplot to an interactive plot using plotly
+  ggplotly(gg)
+}
+```
+
+### create region vaccination covarage function
+
+The birth numbers for each region are based on GSO data. The birth numbers for Binh Dinh have been deducted from Region 3, as our vaccination data does not include Binh Dinh province.[For GSO data, visit the official website](https://www.gso.gov.vn/dan-so/)
+
+```{r region coverage function}
+region_coverage_plot <- function(data_temp){
+region <- read_xlsx(here::here("data/region.xlsx"))
+frequency_table <- table(data_temp$region, data_temp$year_dob)
+frequency_table <- as.data.frame(frequency_table)
+frequency_table <- frequency_table %>% rename(region = Var1 , year_dob = Var2)
+
+  
+region <- left_join(x = frequency_table, y = region, by = c("region","year_dob" ))
+region <- region %>% mutate(coverage = (Freq/birth_number)*100)
+region <- region %>% mutate(coverage = format(round(coverage, 1), nsmall = 1, scientific = FALSE))
+region_wide <- region %>% select(region, year_dob, coverage) %>% pivot_wider(id_cols = region, names_from = year_dob, values_from = coverage)
+region
+
+
+gg <- ggplot(region, aes(x = factor(year_dob), y = as.numeric(coverage), fill = factor(region))) +
+  geom_col() +
+  labs(title = "Coverage by Year",
+       x = "Year",
+       y = "Coverage") +
+  facet_wrap(~region) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 5)) +  # Adjust the size here
+
+  scale_y_continuous(breaks = seq(0, max(region$coverage), by = 20))
+
+
+# Convert ggplot to interactive plot using plotly
+ggplotly(gg)
+}
+```
+
+### Create vac_order
+
+```{r vac_order}
+data <- data %>%
+  arrange(pid, vacdate) %>%
+  group_by(pid) %>%
+  mutate(vac_order = row_number())
+setDT(data)
+data <- data %>% mutate(vac_order = paste("V", vac_order, sep = ""))
+```
+
+### Create new data frame data_wide, new variable HBV_delay
+
+```{r create HBV_delay, data_wide}
+data %>% group_by(pid) %>% mutate ()
+
+data_wide <- data %>% 
+  subset(select =c(pid, vac_order, vac_month, province_reg, year_dob, region)) %>% 
+  pivot_wider(names_from = vac_order, values_from = vac_month)
+
+data_wide <- data_wide %>% 
+  mutate(
+    HBVnewborn_delay = ifelse(V1 == -2 , 0, 
+                              ifelse(V1 == -1 , 1, 
+                                     ifelse(V1 == 0, 2, 3))))
+
+
+data_wide <- data_wide %>% 
+  mutate(
+    HBV1_delay = ifelse(V1 > 8, 2,
+                        ifelse(V1 >2 , 1,
+                               ifelse(V1 == 2 , 0,
+                                      ifelse(V1 == 1, -1,
+                                             ifelse(V2 > 8, 2,
+                                                    ifelse(V2 > 2, 1,
+                                                            ifelse(V2 == 2, 0, -1))))))))
+
+data_wide <- data_wide %>% 
+  mutate(
+    HBV2_delay = ifelse(V2 > 9, 2,
+                        ifelse(V2 > 3 , 1,
+                               ifelse(V2 == 3 , 0,
+                                      ifelse(V1 >= 1, -1,
+                                             ifelse(V3 > 9, 2,
+                                                    ifelse( V3 > 3, 1,
+                                                            ifelse(V3 == 3, 0, -1))))))))
+
+data_wide <- data_wide %>% 
+  mutate(
+    HBV3_delay = ifelse(V3 > 10, 2,
+                        ifelse(V3 > 4 , 1,
+                               ifelse(V3 == 4 , 0,
+                                      ifelse(V2 >= 3, -1,
+                                             ifelse( V4 > 10, 2,
+                                                     ifelse(V4 > 4, 1,
+                                                            ifelse(V4 == 4, 0, -1))))))))
+
+data_wide %>%  filter(HBV1_delay == 0, year_dob == 2018) %>% nrow()
+data_wide %>%  filter(HBV1_delay == 1, year_dob == 2018) %>% nrow()
+data_wide %>%  filter( HBV1_delay == 0, year_dob == 2017) %>% nrow()
+data_wide %>%  filter( HBV1_delay == 1, year_dob == 2017) %>% nrow()
+data_wide %>%  filter( HBVnewborn_delay == 0, year_dob == 2018, province_reg == "Bạc Liêu") %>% nrow()
+```
+
+## II. Coverage of Province each vac_month
+
+```{r vac_month -2}
+data_temp <- data %>% filter(vac_month == -2)
+interactive_plot <- province_coverage_plot(data_temp)
+interactive_plot
+```
+
+```{r vac_month -2, -1}
+data_temp <- data %>% filter(vac_month %in% c(-2,-1))
+interactive_plot <- province_coverage_plot(data_temp)
+interactive_plot
+```
+
+```{r vac_month 0}
+data_temp <- data %>% filter(vac_month == 0)
+interactive_plot <- province_coverage_plot(data_temp)
+interactive_plot
+```
+
+```{r vac_month 2}
+data_temp <- data %>% filter(vac_month == 2)
+interactive_plot <- province_coverage_plot(data_temp)
+interactive_plot
+```
+
+```{r vac_month 3}
+data_temp <- data %>% filter(vac_month == 3)
+interactive_plot <- province_coverage_plot(data_temp)
+interactive_plot
+```
+
+```{r vac_month 4}
+data_temp <- data %>% filter(vac_month == 4)
+interactive_plot <- province_coverage_plot(data_temp)
+interactive_plot
+```
+
+## III. Up-to-date coverage
+## 1. Up-to-date coverage of region
+### a. HBVnewborn coverage
+```{r region HBVnewborn coverage}
+data_temp <- data_wide %>% filter(HBVnewborn_delay == 0)
+interactive_plot <- region_coverage_plot(data_temp)
+interactive_plot
+```
+### b. HBVnewborn possible coverage
+```{r region HBVnewborn possible coverage }
+data_temp <- data_wide %>% filter(HBVnewborn_delay %in% c(0,1,2))
+interactive_plot <- region_coverage_plot(data_temp)
+interactive_plot
+```
+### c. HBV1 up-to-date coverage
+```{r region HBV1 coverage}
+data_temp <- data_wide %>% filter(HBV1_delay %in% c(-1,0,1,2) )
+interactive_plot <- region_coverage_plot(data_temp)
+interactive_plot
+```
+### d. HBV2 up-to-date coverage
+```{r region HBV2 coverage}
+data_temp <- data_wide %>% filter(HBV2_delay %in% c(-1,0,1,2) )
+interactive_plot <- region_coverage_plot(data_temp)
+interactive_plot
+```
+### e. HBV3 up-to-date coverage 
+```{r region HBV3 coverage}
+data_temp <- data_wide %>% filter(HBV3_delay %in% c(-1,0,1,2))
+interactive_plot <- region_coverage_plot(data_temp)
+interactive_plot
+```
+
+## 2. Up-to-date coverage of each Province
+In this report, we highlight a concerning trend regarding the up-to-date vaccination coverage of children born in 2019. According to [a source](https://www.vietnamplus.vn/ty-le-tiem-chung-o-tphcm-khong-dat-yeu-cau-do-dich-covid-19-post653336.vnp), the coverage is low, primarily due to the impact of COVID-19.
+The current situation emphasizes the importance of addressing vaccination challenges, especially in the context of the ongoing pandemic.
+
+### a. HBVnewborn coverage
+```{r province HBVnewborn coverage}
+data_temp <- data_wide %>% filter(HBVnewborn_delay == 0 )
+interactive_plot <- province_coverage_plot(data_temp)
+interactive_plot
+```
+### b. HBVnewborn possible coverage
+```{r province HBVnewborn possible coverage}
+data_temp <- data_wide %>% filter(HBVnewborn_delay %in% c(0,1,2) )
+interactive_plot <- province_coverage_plot(data_temp)
+interactive_plot
+```
+### c. HBV1 up-to-date coverage
+```{r HBV1 coverage}
+data_temp <- data_wide %>% filter(HBV1_delay %in% c(-1,0,1,2))
+interactive_plot <- province_coverage_plot(data_temp)
+interactive_plot
+```
+### d. HBV2 up-to-date coverage
+```{r HBV2 coverage}
+data_temp <- data_wide %>% filter(HBV2_delay %in% c(-1,0,1,2))
+interactive_plot <- province_coverage_plot(data_temp)
+interactive_plot
+```
+### e. HBV3 up-to-date coverage
+```{r HBV3 coverage}
+data_temp <- data_wide %>% filter(HBV3_delay %in% c(-1,0,1,2))
+interactive_plot <- province_coverage_plot(data_temp)
+interactive_plot
+```
+
+## 3. Up-todate coverage of each Province by Region
+
+### a. HBVnewborn coverage 
+```{r }
+library(dplyr)
+
+create_interactive_plot <- function(data_wide, selected_region) {
+  data_temp <- data_wide %>%
+    filter(HBVnewborn_delay == 0, region == selected_region)
+  
+  interactive_plot <- province_coverage_plot(data_temp)
+  return(interactive_plot)
+}
+
+# Example usage
+regions_of_interest <- c("RRD", "NMM", "NCC", "CHL", "SE", "MKD")
+
+for (region in regions_of_interest) {
+  plot_name <- paste0("interactive_plot_", region)
+  assign(plot_name, create_interactive_plot(data_wide, region))
+}
+
+```
+
+```{r}
+interactive_plot_RRD
+```
+```{r}
+interactive_plot_NMM
+```
+```{r}
+interactive_plot_NCC
+```
+```{r}
+interactive_plot_CHL
+```
+```{r}
+interactive_plot_SE
+```
+```{r}
+interactive_plot_MKD
+```
+### b. HBVnewborn possible coverage 
+```{r }
+library(dplyr)
+
+create_interactive_plot <- function(data_wide, selected_region) {
+  data_temp <- data_wide %>%
+    filter(HBVnewborn_delay %in% c(0,1,2), region == selected_region)
+  
+  interactive_plot <- province_coverage_plot(data_temp)
+  return(interactive_plot)
+}
+
+# Example usage
+regions_of_interest <- c("RRD", "NMM", "NCC", "CHL", "SE", "MKD")
+
+for (region in regions_of_interest) {
+  plot_name <- paste0("interactive_plot_", region)
+  assign(plot_name, create_interactive_plot(data_wide, region))
+}
+
+
+```
+
+
+```{r}
+interactive_plot_RRD
+```
+```{r}
+interactive_plot_NMM
+```
+```{r}
+interactive_plot_NCC
+```
+```{r}
+interactive_plot_CHL
+```
+```{r}
+interactive_plot_SE
+```
+```{r}
+interactive_plot_MKD
+```
+
+### c. HBV1 up-to-date
+```{r }
+library(dplyr)
+
+create_interactive_plot <- function(data_wide, selected_region) {
+  data_temp <- data_wide %>%
+    filter(HBV1_delay %in% c(0,1,2), region == selected_region)
+  
+  interactive_plot <- province_coverage_plot(data_temp)
+  return(interactive_plot)
+}
+
+# Example usage
+regions_of_interest <- c("RRD", "NMM", "NCC", "CHL", "SE", "MKD")
+
+for (region in regions_of_interest) {
+  plot_name <- paste0("interactive_plot_", region)
+  assign(plot_name, create_interactive_plot(data_wide, region))
+}
+```
+
+```{r}
+interactive_plot_RRD
+```
+```{r}
+interactive_plot_NMM
+```
+```{r}
+interactive_plot_NCC
+```
+```{r}
+interactive_plot_CHL
+```
+```{r}
+interactive_plot_SE
+```
+```{r}
+interactive_plot_MKD
+```
+
+### d. HBV2 up-to-date coverage
+```{r }
+library(dplyr)
+
+create_interactive_plot <- function(data_wide, selected_region) {
+  data_temp <- data_wide %>%
+    filter(HBV2_delay %in% c(0,1,2), region == selected_region)
+  
+  interactive_plot <- province_coverage_plot(data_temp)
+  return(interactive_plot)
+}
+
+# Example usage
+regions_of_interest <- c("RRD", "NMM", "NCC", "CHL", "SE", "MKD")
+
+for (region in regions_of_interest) {
+  plot_name <- paste0("interactive_plot_", region)
+  assign(plot_name, create_interactive_plot(data_wide, region))
+}
+```
+
+```{r}
+interactive_plot_RRD
+```
+```{r}
+interactive_plot_NMM
+```
+```{r}
+interactive_plot_NCC
+```
+```{r}
+interactive_plot_CHL
+```
+```{r}
+interactive_plot_SE
+```
+```{r}
+interactive_plot_MKD
+```
+
+
+### e. HBV3 up-to-date coverage 
+```{r }
+library(dplyr)
+
+create_interactive_plot <- function(data_wide, selected_region) {
+  data_temp <- data_wide %>%
+    filter(HBV3_delay %in% c(0,1,2), region == selected_region)
+  
+  interactive_plot <- province_coverage_plot(data_temp)
+  return(interactive_plot)
+}
+
+# Example usage
+regions_of_interest <- c("RRD", "NMM", "NCC", "CHL", "SE", "MKD")
+
+for (region in regions_of_interest) {
+  plot_name <- paste0("interactive_plot_", region)
+  assign(plot_name, create_interactive_plot(data_wide, region))
+}
+```
+
+```{r}
+interactive_plot_RRD
+```
+```{r}
+interactive_plot_NMM
+```
+```{r}
+interactive_plot_NCC
+```
+```{r}
+interactive_plot_CHL
+```
+```{r}
+interactive_plot_SE
+```
+```{r}
+interactive_plot_MKD
+```
