@@ -23,5 +23,9 @@ class Settings(BaseSettings):
     db_database: str
     db_logging: bool
 
+    redis_host: str
+    redis_port: str
+    redis_db: str
+
 
 settings = Settings()
