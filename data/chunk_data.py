@@ -14,4 +14,4 @@ for i, chunk in enumerate(range(0, len(df), chunk_size)):
     chunk_df.to_csv(output_file, index=False)
     print(f"Saved: {output_file}")
 
-print("Splitting completed!")
+print("✅ Chunked CSV file into smaller files!")

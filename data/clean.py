@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Load CSV from GitHub (or change to local file path)
-url = "https://raw.githubusercontent.com/minh-swinburne/cos30049-hbv-tracker/refs/heads/full/data/data/sampled_data.csv"
+url = "data/sampled_data.csv"
 df = pd.read_csv(url)
 
 # Fill missing 'vacplace' with "-"
