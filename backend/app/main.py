@@ -9,7 +9,7 @@ app = FastAPI()
 app.include_router(router)
 
 setup_cors(app)
-setup_database()
+# setup_database()
 setup_graph_db()
 
 @app.get("/")
