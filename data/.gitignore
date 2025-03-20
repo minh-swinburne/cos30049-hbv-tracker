@@ -1,4 +1,6 @@
-.env*
+.env.*
+!.env
+
 .aws/
 .vscode/
 data/hepb_data_long.parquet
