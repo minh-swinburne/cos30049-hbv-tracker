@@ -1,4 +1,6 @@
-.env*
+.env.*
+!.env
+
 .aws/
 
 # Byte-compiled / optimized / DLL files
@@ -131,7 +133,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+# .env
 .venv
 env/
 venv/
