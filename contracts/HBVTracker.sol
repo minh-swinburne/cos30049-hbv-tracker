@@ -8,35 +8,56 @@ contract HBVTracker {
 
     struct VaccinationRecord {
         bytes32 dataHash;
-        bool exists;
+        uint256 timestamp;
     }
 
-    mapping(address => VaccinationRecord) private vaccinationHashes;
+    address public deployer;
+    mapping(address => VaccinationRecord[]) private vaccinationRecords;
     mapping(address => bool) public authorizedHealthcareProviders;
     mapping(address => bool) public authorizedResearchers;
 
     event VaccinationStored(address indexed patient, bytes32 dataHash);
-    event VaccinationUpdated(address indexed patient, bytes32 newDataHash);
     event ResearcherAuthorized(address indexed researcher);
+    event HealthcareProviderAuthorized(address indexed provider);
 
-    // Store vaccination hash (Only the owner can update)
+    constructor() {
+        deployer = msg.sender;
+    }
+
+    // Add an admin-controlled function to authorize healthcare providers
+    function authorizeHealthcareProvider(address provider) public {
+        require(msg.sender == deployer, "Only admin can authorize providers");
+        authorizedHealthcareProviders[provider] = true;
+        emit HealthcareProviderAuthorized(provider);
+    }
+
+    // Store vaccination hash (Multiple records per patient)
     function storeHash(bytes32 dataHash, bytes memory signature) public {
+        require(
+            authorizedHealthcareProviders[msg.sender],
+            "Not an authorized healthcare provider"
+        );
         require(
             verifySignature(msg.sender, dataHash, signature),
             "Invalid signature"
         );
 
-        vaccinationHashes[msg.sender] = VaccinationRecord(dataHash, true);
+        vaccinationRecords[msg.sender].push(VaccinationRecord(dataHash, block.timestamp));
         emit VaccinationStored(msg.sender, dataHash);
     }
 
-    // Retrieve vaccination hash (Anyone can check)
-    function getHash(address user) public view returns (bytes32) {
-        require(vaccinationHashes[user].exists, "No vaccination record found");
-        return vaccinationHashes[user].dataHash;
+    // Retrieve all vaccination records for a patient
+    function getHashes(address user) public view returns (bytes32[] memory) {
+        require(vaccinationRecords[user].length > 0, "No vaccination records found");
+
+        bytes32[] memory hashes = new bytes32[](vaccinationRecords[user].length);
+        for (uint256 i = 0; i < vaccinationRecords[user].length; i++) {
+            hashes[i] = vaccinationRecords[user][i].dataHash;
+        }
+        return hashes;
     }
 
-    // Grant access to a researcher for anonymous data verification
+    // Grant access to a researcher
     function grantAccess(address researcher) public {
         authorizedResearchers[researcher] = true;
         emit ResearcherAuthorized(researcher);
@@ -47,26 +68,7 @@ contract HBVTracker {
         return authorizedResearchers[researcher];
     }
 
-    // Update vaccination record (Only authorized healthcare providers can do this)
-    function updateRecord(
-        address patient,
-        bytes32 newDataHash,
-        bytes memory signature
-    ) public {
-        require(
-            authorizedHealthcareProviders[msg.sender],
-            "Not an authorized healthcare provider"
-        );
-        require(
-            verifySignature(patient, newDataHash, signature),
-            "Invalid signature"
-        );
-
-        vaccinationHashes[patient] = VaccinationRecord(newDataHash, true);
-        emit VaccinationUpdated(patient, newDataHash);
-    }
-
-    // Verify a signature using OpenZeppelin's ECDSA library
+    // Verify a signature using OpenZeppelin's ECDSA
     function verifySignature(
         address signer,
         bytes32 dataHash,
