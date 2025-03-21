@@ -7,30 +7,21 @@
 		"abi": [
 			{
 				"inputs": [],
-				"name": "ECDSAInvalidSignature",
-				"type": "error"
+				"stateMutability": "nonpayable",
+				"type": "constructor"
 			},
 			{
+				"anonymous": false,
 				"inputs": [
 					{
-						"internalType": "uint256",
-						"name": "length",
-						"type": "uint256"
+						"indexed": true,
+						"internalType": "address",
+						"name": "provider",
+						"type": "address"
 					}
 				],
-				"name": "ECDSAInvalidSignatureLength",
-				"type": "error"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "bytes32",
-						"name": "s",
-						"type": "bytes32"
-					}
-				],
-				"name": "ECDSAInvalidSignatureS",
-				"type": "error"
+				"name": "HealthcareProviderAuthorized",
+				"type": "event"
 			},
 			{
 				"anonymous": false,
@@ -65,23 +56,17 @@
 				"type": "event"
 			},
 			{
-				"anonymous": false,
 				"inputs": [
 					{
-						"indexed": true,
 						"internalType": "address",
-						"name": "patient",
+						"name": "provider",
 						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "bytes32",
-						"name": "newDataHash",
-						"type": "bytes32"
 					}
 				],
-				"name": "VaccinationUpdated",
-				"type": "event"
+				"name": "authorizeHealthcareProvider",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
 			},
 			{
 				"inputs": [
@@ -122,19 +107,32 @@
 				"type": "function"
 			},
 			{
-				"inputs": [
+				"inputs": [],
+				"name": "deployer",
+				"outputs": [
 					{
 						"internalType": "address",
-						"name": "user",
+						"name": "",
 						"type": "address"
 					}
 				],
-				"name": "getHash",
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "patient",
+						"type": "address"
+					}
+				],
+				"name": "getHashes",
 				"outputs": [
 					{
-						"internalType": "bytes32",
+						"internalType": "bytes32[]",
 						"name": "",
-						"type": "bytes32"
+						"type": "bytes32[]"
 					}
 				],
 				"stateMutability": "view",
@@ -175,63 +173,23 @@
 			{
 				"inputs": [
 					{
-						"internalType": "bytes32",
-						"name": "dataHash",
-						"type": "bytes32"
-					},
-					{
-						"internalType": "bytes",
-						"name": "signature",
-						"type": "bytes"
-					}
-				],
-				"name": "storeHash",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
 						"internalType": "address",
 						"name": "patient",
 						"type": "address"
 					},
 					{
 						"internalType": "bytes32",
-						"name": "newDataHash",
+						"name": "dataHash",
 						"type": "bytes32"
-					},
-					{
-						"internalType": "bytes",
-						"name": "signature",
-						"type": "bytes"
 					}
 				],
-				"name": "updateRecord",
+				"name": "storeHash",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			}
 		],
 		"devdoc": {
-			"errors": {
-				"ECDSAInvalidSignature()": [
-					{
-						"details": "The signature derives the `address(0)`."
-					}
-				],
-				"ECDSAInvalidSignatureLength(uint256)": [
-					{
-						"details": "The signature has an invalid length."
-					}
-				],
-				"ECDSAInvalidSignatureS(bytes32)": [
-					{
-						"details": "The signature has an S value that is in the upper half order."
-					}
-				]
-			},
 			"kind": "dev",
 			"methods": {},
 			"version": 1
@@ -258,20 +216,12 @@
 		"remappings": []
 	},
 	"sources": {
-		"@openzeppelin/contracts/utils/cryptography/ECDSA.sol": {
-			"keccak256": "0x69f54c02b7d81d505910ec198c11ed4c6a728418a868b906b4a0cf29946fda84",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://8e25e4bdb7ae1f21d23bfee996e22736fc0ab44cfabedac82a757b1edc5623b9",
-				"dweb:/ipfs/QmQdWQvB6JCP9ZMbzi8EvQ1PTETqkcTWrbcVurS7DKpa5n"
-			]
-		},
 		"contracts/HBVTracker.sol": {
-			"keccak256": "0x8f554783b2e35061f2927132c8eb8b6b2c74f02e9aa9995b8531c023a80c1d98",
+			"keccak256": "0x9d15f80d2911e1ed12304779da0ab7912235e12c85cdb88ece83c73e86801c50",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://7683bd717e812e8462ebd32b1ad225ae175582d71171ace33fc1f6164ee63f31",
-				"dweb:/ipfs/QmWA7TKcbUbce8Pu9wJY5nhtYfKpYZ7PgcWMZ1Qvs3KV3E"
+				"bzz-raw://f419a199c811586f1d55702edf0c8d42353ea98bd645cd5f14fa8d42fdeb213c",
+				"dweb:/ipfs/QmWJvuQKyQQVgsVauUaY1o7VBQDg7XMnVUkFAfEaTcveTg"
 			]
 		}
 	},
