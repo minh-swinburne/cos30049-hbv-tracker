@@ -19,9 +19,9 @@ async def store_vaccination_hash(
 
 
 @router.get("/get/{address}")
-async def get_vaccination_hash(address: str = Path(...)):
+async def get_vaccination_hashes(address: str = Path(...)):
     """
-    Retrieve a vaccination record hash from the blockchain.
+    Retrieve vaccination record hashes from the blockchain.
     """
     data_hash = get_vaccination(address)
     return {"data_hash": data_hash}
@@ -29,13 +29,11 @@ async def get_vaccination_hash(address: str = Path(...)):
 
 @router.post("/verify")
 async def verify_vaccination(
+    tx_hash: str = Body(...),
     address: str = Body(...),
+    signature: str = Body(...),
 ):
     """
     Verify a vaccination record hash on the blockchain.
     """
-    vaccination_hash = get_vaccination(address)
-    if vaccination_hash == data_hash:
-        return {"verified": True}
-    else:
-        return {"verified": False}
+
