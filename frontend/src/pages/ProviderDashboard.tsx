@@ -1,18 +1,17 @@
-/*
-Authors: 
-- Le Luu Phuoc Thinh
-- Nguyen Thi Thanh Minh
-- Nguyen Quy Hung
-- Vo Thi Kim Huyen
-- Dinh Danh Nam
+/**
+ * @file ProviderDashboard.tsx
+ * @description Dashboard for healthcare providers to manage vaccinations
+ * @author Group 3
+ * @date 2024-03-20
+ */
 
-Group 3 - COS30049
-*/
-
-import { FC, useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import React, { FC, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useMetaMask } from "../hooks/useMetaMask";
+import { graphClient } from "../api/graphClient";
+import { blockchainClient } from "../api/blockchainClient";
+import type { HealthcareProvider, VaccinationRecord } from "../api/graphClient";
 import AppHeader from "../components/AppHeader";
-import { runQuery } from "../data/neo4jConfig";
 import {
   Bar,
   BarChart,
@@ -24,152 +23,140 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-interface VaccinationRecord {
-  id: string;
-  date: string;
-  type: string;
-  patientId: string;
-  patientRegion: string;
-}
-
 interface DailyStats {
   date: string;
   count: number;
 }
 
-interface ProviderDashboardProps {
-  providerId?: string;
+interface ProviderDashboardState {
+  provider: HealthcareProvider | null;
+  vaccinations: VaccinationRecord[];
+  isLoading: boolean;
+  error: string | null;
+  stats: {
+    total_vaccinations: number;
+    total_patients: number;
+    total_providers: number;
+  } | null;
 }
 
-const ProviderDashboard: FC<ProviderDashboardProps> = ({
-  providerId: propProviderId,
-}) => {
-  const { providerId: urlProviderId } = useParams<{ providerId: string }>();
-  const activeProviderId = propProviderId || urlProviderId;
-
-  const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Form state for new vaccination
-  const [newVaccination, setNewVaccination] = useState({
-    patientId: "",
-    type: "",
-    date: new Date().toISOString().split("T")[0],
+const ProviderDashboard: FC = () => {
+  const navigate = useNavigate();
+  const { account, isConnected } = useMetaMask();
+  const [state, setState] = useState<ProviderDashboardState>({
+    provider: null,
+    vaccinations: [],
+    isLoading: true,
+    error: null,
+    stats: null,
   });
 
+  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
+
   useEffect(() => {
+    if (!isConnected || !account) {
+      navigate("/login");
+      return;
+    }
+
     const fetchProviderData = async () => {
       try {
-        const query = `
-          MATCH (h:HealthcareProvider {id: $providerId})
-          MATCH (v:Vaccination)-[:ADMINISTERED_BY]->(h)
-          MATCH (p:Patient)-[:RECEIVED]->(v)
-          RETURN v.id as id, v.date as date, v.type as type,
-                 p.id as patientId, p.region as patientRegion
-          ORDER BY v.date DESC
-        `;
-
-        const result = await runQuery(query, { providerId: activeProviderId });
-
-        const records = result.map((record) => ({
-          id: record.get("id"),
-          date: record.get("date"),
-          type: record.get("type"),
-          patientId: record.get("patientId"),
-          patientRegion: record.get("patientRegion"),
+        setState((prev: ProviderDashboardState) => ({
+          ...prev,
+          isLoading: true,
+          error: null,
         }));
 
-        setVaccinations(records);
+        // Fetch provider data
+        const provider = await graphClient.getProvider(account);
+
+        // Fetch vaccination history
+        const vaccinations = await graphClient.getProviderVaccinations(account);
+
+        // Fetch statistics
+        const stats = await graphClient.getVaccinationStats();
+
+        setState({
+          provider,
+          vaccinations,
+          isLoading: false,
+          error: null,
+          stats,
+        });
 
         // Calculate daily statistics
-        const stats = records.reduce((acc: { [key: string]: number }, curr) => {
-          const date = new Date(curr.date).toISOString().split("T")[0];
-          acc[date] = (acc[date] || 0) + 1;
-          return acc;
-        }, {});
+        const dailyStatsData = vaccinations.reduce(
+          (acc: { [key: string]: number }, curr: VaccinationRecord) => {
+            const date = new Date(curr.vaccination.date)
+              .toISOString()
+              .split("T")[0];
+            acc[date] = (acc[date] || 0) + 1;
+            return acc;
+          },
+          {}
+        );
 
-        const dailyStatsData = Object.entries(stats).map(([date, count]) => ({
-          date,
-          count,
-        }));
+        const dailyStatsDataArray = Object.entries(dailyStatsData).map(
+          ([date, count]) => ({
+            date,
+            count,
+          })
+        );
 
         setDailyStats(
-          dailyStatsData.sort((a, b) => a.date.localeCompare(b.date))
+          dailyStatsDataArray.sort((a, b) => a.date.localeCompare(b.date))
         );
-      } catch (err) {
-        setError("Error fetching provider data");
-        console.error(err);
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        setState((prev: ProviderDashboardState) => ({
+          ...prev,
+          isLoading: false,
+          error: "Failed to load provider data. Please try again.",
+        }));
       }
     };
 
-    if (activeProviderId) {
-      fetchProviderData();
-    }
-  }, [activeProviderId]);
+    fetchProviderData();
+  }, [account, isConnected, navigate]);
 
-  const handleNewVaccinationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const query = `
-        MATCH (h:HealthcareProvider {id: $providerId})
-        MATCH (p:Patient {id: $patientId})
-        CREATE (v:Vaccination {
-          id: randomUUID(),
-          date: $date,
-          type: $type
-        })
-        CREATE (p)-[:RECEIVED]->(v)
-        CREATE (v)-[:ADMINISTERED_BY]->(h)
-        RETURN v.id as id, v.date as date, v.type as type,
-               p.id as patientId, p.region as patientRegion
-      `;
-
-      const result = await runQuery(query, {
-        providerId: activeProviderId,
-        ...newVaccination,
-      });
-
-      const newRecord = result[0];
-      const vaccinationRecord = {
-        id: newRecord.get("id"),
-        date: newRecord.get("date"),
-        type: newRecord.get("type"),
-        patientId: newRecord.get("patientId"),
-        patientRegion: newRecord.get("patientRegion"),
-      };
-
-      setVaccinations([vaccinationRecord, ...vaccinations]);
-      setNewVaccination({
-        patientId: "",
-        type: "",
-        date: new Date().toISOString().split("T")[0],
-      });
-    } catch (err) {
-      setError("Error registering new vaccination");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (state.isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
-  if (error) {
+  if (state.error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-red-600 text-xl">{error}</div>
+        <div className="text-center">
+          <div className="text-red-600 mb-4">{state.error}</div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!state.provider) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Provider profile not found.</p>
+          <button
+            onClick={() => navigate("/register?type=provider")}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Register as Provider
+          </button>
+        </div>
       </div>
     );
   }
@@ -182,77 +169,147 @@ const ProviderDashboard: FC<ProviderDashboardProps> = ({
       />
 
       <main className="container mx-auto px-4 py-8">
-        {/* Register New Vaccination */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Register New Vaccination
+            Provider Information
           </h2>
-          <form onSubmit={handleNewVaccinationSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Patient ID
-                </label>
-                <input
-                  type="text"
-                  value={newVaccination.patientId}
-                  onChange={(e) =>
-                    setNewVaccination({
-                      ...newVaccination,
-                      patientId: e.target.value,
-                    })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Vaccine Type
-                </label>
-                <input
-                  type="text"
-                  value={newVaccination.type}
-                  onChange={(e) =>
-                    setNewVaccination({
-                      ...newVaccination,
-                      type: e.target.value,
-                    })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={newVaccination.date}
-                  onChange={(e) =>
-                    setNewVaccination({
-                      ...newVaccination,
-                      date: e.target.value,
-                    })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
+          <dl className="grid grid-cols-1 gap-4">
+            <div>
+              <dt className="text-sm font-medium text-gray-500">Name</dt>
+              <dd className="mt-1 text-sm text-gray-900">
+                {state.provider.name}
+              </dd>
             </div>
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Register Vaccination
-              </button>
+            <div>
+              <dt className="text-sm font-medium text-gray-500">Region</dt>
+              <dd className="mt-1 text-sm text-gray-900">
+                {state.provider.region}
+              </dd>
             </div>
-          </form>
+            <div>
+              <dt className="text-sm font-medium text-gray-500">
+                Wallet Address
+              </dt>
+              <dd className="mt-1 text-sm text-gray-900 font-mono">
+                {state.provider.wallet_address}
+              </dd>
+            </div>
+          </dl>
         </div>
 
-        {/* Daily Statistics */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Statistics</h2>
+          <dl className="grid grid-cols-1 gap-4">
+            <div>
+              <dt className="text-sm font-medium text-gray-500">
+                Total Vaccinations
+              </dt>
+              <dd className="mt-1 text-2xl font-semibold text-gray-900">
+                {state.stats?.total_vaccinations}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-500">
+                Total Patients
+              </dt>
+              <dd className="mt-1 text-2xl font-semibold text-gray-900">
+                {state.stats?.total_patients}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-500">
+                Total Providers
+              </dt>
+              <dd className="mt-1 text-2xl font-semibold text-gray-900">
+                {state.stats?.total_providers}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-900">
+              Vaccination Records
+            </h2>
+            <button
+              onClick={() => navigate("/vaccination/new")}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Add New Vaccination
+            </button>
+          </div>
+          {state.vaccinations.length === 0 ? (
+            <p className="text-gray-500">No vaccination records found.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Patient
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Vaccine Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Batch Number
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {state.vaccinations.map((record) => (
+                    <tr key={record.vaccination.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(record.vaccination.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {record.patient.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {record.vaccination.vaccine_type}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {record.vaccination.batch_number}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            record.vaccination.status === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {record.vaccination.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <button
+                          onClick={() =>
+                            navigate(`/vaccination/${record.vaccination.id}`)
+                          }
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
             Daily Statistics
@@ -268,57 +325,6 @@ const ProviderDashboard: FC<ProviderDashboardProps> = ({
                 <Bar dataKey="count" fill="#3B82F6" name="Vaccinations" />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Recent Vaccinations */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Recent Vaccinations
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Vaccination ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Patient ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Patient Region
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {vaccinations.map((vaccination) => (
-                  <tr key={vaccination.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {vaccination.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(vaccination.date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {vaccination.type}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {vaccination.patientId}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {vaccination.patientRegion}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       </main>

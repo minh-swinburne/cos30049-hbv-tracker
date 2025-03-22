@@ -1,39 +1,44 @@
-/*
-Authors: 
-- Le Luu Phuoc Thinh
-- Nguyen Thi Thanh Minh
-- Nguyen Quy Hung
-- Vo Thi Kim Huyen
-- Dinh Danh Nam
+/**
+ * @file Register.tsx
+ * @description Registration page for patients and healthcare providers
+ * @author Group 3
+ * @date 2024-03-20
+ */
 
-Group 3 - COS30049
-*/
-
-import { FC, useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import AppHeader from "../components/AppHeader";
-import { runQuery } from "../data/neo4jConfig";
+import React, { FC, useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useMetaMask } from "../hooks/useMetaMask";
+import { graphClient } from "../api/graphClient";
+import { blockchainClient } from "../api/blockchainClient";
 
 interface RegistrationState {
-  isRegistering: boolean;
+  isConnecting: boolean;
+  isSubmitting: boolean;
   error: string | null;
-  success: boolean;
+  success: string | null;
   account: string | null;
 }
 
 interface RegistrationFormData {
   name: string;
   region: string;
-  [key: string]: string;
 }
 
 const Register: FC = () => {
   const navigate = useNavigate();
-  const { type } = useParams<{ type: string }>();
+  const [searchParams] = useSearchParams();
+  const type = searchParams.get("type") || "patient";
+  const {
+    isConnected,
+    account,
+    connectWallet,
+    error: metaMaskError,
+  } = useMetaMask();
   const [state, setState] = useState<RegistrationState>({
-    isRegistering: false,
+    isConnecting: false,
+    isSubmitting: false,
     error: null,
-    success: false,
+    success: null,
     account: null,
   });
   const [formData, setFormData] = useState<RegistrationFormData>({
@@ -42,46 +47,10 @@ const Register: FC = () => {
   });
 
   useEffect(() => {
-    const checkMetaMask = async () => {
-      if (!window.ethereum) {
-        setState((prev) => ({
-          ...prev,
-          error: "Please install MetaMask to register",
-        }));
-        return;
-      }
-
-      try {
-        const accounts = await window.ethereum.request({
-          method: "eth_accounts",
-        });
-        if (accounts.length > 0) {
-          setState((prev) => ({ ...prev, account: accounts[0] }));
-        }
-      } catch (err) {
-        console.error("Error checking MetaMask:", err);
-      }
-    };
-
-    checkMetaMask();
-  }, []);
-
-  const connectWallet = async () => {
-    if (!window.ethereum) return;
-
-    try {
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-      setState((prev) => ({ ...prev, account: accounts[0] }));
-    } catch (err) {
-      console.error("Error connecting wallet:", err);
-      setState((prev) => ({
-        ...prev,
-        error: "Error connecting to MetaMask",
-      }));
+    if (isConnected && account) {
+      setState((prev) => ({ ...prev, account }));
     }
-  };
+  }, [isConnected, account]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -90,189 +59,180 @@ const Register: FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!state.account) return;
+    if (!state.account) {
+      setState((prev) => ({
+        ...prev,
+        error: "Please connect your wallet first",
+      }));
+      return;
+    }
 
-    setState((prev) => ({ ...prev, isRegistering: true, error: null }));
+    setState((prev) => ({
+      ...prev,
+      isSubmitting: true,
+      error: null,
+      success: null,
+    }));
 
     try {
-      const nodeLabel = type === "patient" ? "Patient" : "HealthcareProvider";
-      const query = `
-        CREATE (n:${nodeLabel} {
-          id: $account,
-          name: $name,
-          region: $region
-        })
-        RETURN n
-      `;
+      // Create the registration data
+      const registrationData = {
+        wallet_address: state.account,
+        name: formData.name,
+        region: formData.region,
+      };
 
-      await runQuery(query, {
-        account: state.account,
-        ...formData,
-      });
+      // Register the user based on type
+      if (type === "patient") {
+        await graphClient.registerPatient(registrationData);
+      } else {
+        await graphClient.registerProvider(registrationData);
+      }
 
-      setState((prev) => ({ ...prev, success: true }));
+      setState((prev) => ({
+        ...prev,
+        success: `Successfully registered as a ${type}! Redirecting...`,
+      }));
 
       // Redirect after successful registration
       setTimeout(() => {
         navigate(
-          type === "patient"
-            ? `/patient/${state.account}`
-            : `/provider/${state.account}`
+          type === "patient" ? "/patient-profile" : "/provider-dashboard"
         );
       }, 2000);
-    } catch (err) {
-      console.error("Error registering:", err);
+    } catch (error) {
       setState((prev) => ({
         ...prev,
-        error: "Error creating account. Please try again.",
+        error: "Registration failed. Please try again.",
       }));
     } finally {
-      setState((prev) => ({ ...prev, isRegistering: false }));
+      setState((prev) => ({ ...prev, isSubmitting: false }));
     }
   };
 
-  if (!type || (type !== "patient" && type !== "provider")) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <AppHeader
-          title="Choose Registration Type"
-          description="Select how you want to register"
-        />
-
-        <main className="container mx-auto px-4 py-8">
-          <div className="max-w-md mx-auto">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                Select Registration Type
-              </h2>
-              <div className="space-y-4">
-                <button
-                  onClick={() => navigate("/register/patient")}
-                  className="w-full py-3 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Register as Patient
-                </button>
-                <button
-                  onClick={() => navigate("/register/provider")}
-                  className="w-full py-3 px-4 bg-green-600 text-white rounded-md hover:bg-green-700"
-                >
-                  Register as Healthcare Provider
-                </button>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  const handleConnect = async () => {
+    setState((prev) => ({ ...prev, isConnecting: true, error: null }));
+    try {
+      await connectWallet();
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        error: "Failed to connect wallet. Please try again.",
+      }));
+    } finally {
+      setState((prev) => ({ ...prev, isConnecting: false }));
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppHeader
-        title={`Register as ${
-          type === "patient" ? "Patient" : "Healthcare Provider"
-        }`}
-        description="Create your account to access the HBV Vaccine Tracker"
-      />
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Register as {type === "patient" ? "Patient" : "Healthcare Provider"}
+        </h2>
+      </div>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">
-              {type === "patient"
-                ? "Patient Registration"
-                : "Healthcare Provider Registration"}
-            </h2>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {state.error && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+              {state.error}
+            </div>
+          )}
 
-            {state.error && (
-              <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md">
-                {state.error}
-              </div>
-            )}
+          {state.success && (
+            <div className="mb-4 bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded">
+              {state.success}
+            </div>
+          )}
 
-            {state.success && (
-              <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-md">
-                Registration successful! Redirecting...
-              </div>
-            )}
+          {metaMaskError && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+              {metaMaskError}
+            </div>
+          )}
 
-            {!state.account ? (
+          {!isConnected ? (
+            <div>
               <button
-                onClick={connectWallet}
-                className="w-full py-3 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                onClick={handleConnect}
+                disabled={state.isConnecting}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                Connect MetaMask to Register
+                {state.isConnecting ? "Connecting..." : "Connect with MetaMask"}
               </button>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Wallet Address
-                  </label>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Name
+                </label>
+                <div className="mt-1">
                   <input
-                    type="text"
-                    value={state.account}
-                    disabled
-                    className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    {type === "patient" ? "Full Name" : "Provider Name"}
-                  </label>
-                  <input
-                    type="text"
+                    id="name"
                     name="name"
+                    type="text"
+                    required
                     value={formData.name}
                     onChange={handleInputChange}
-                    required
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Region
-                  </label>
+              <div>
+                <label
+                  htmlFor="region"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Region
+                </label>
+                <div className="mt-1">
                   <input
-                    type="text"
+                    id="region"
                     name="region"
+                    type="text"
+                    required
                     value={formData.region}
                     onChange={handleInputChange}
-                    required
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
                 </div>
+              </div>
 
+              <div>
                 <button
                   type="submit"
-                  disabled={state.isRegistering}
-                  className={`w-full py-3 px-4 rounded-md text-white ${
-                    state.isRegistering
-                      ? "bg-blue-400 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                  disabled={state.isSubmitting}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 >
-                  {state.isRegistering ? "Registering..." : "Register"}
+                  {state.isSubmitting ? "Registering..." : "Register"}
                 </button>
-              </form>
-            )}
+              </div>
+            </form>
+          )}
 
-            <div className="mt-6">
-              <p className="text-sm text-gray-600 text-center">
-                Already have an account?{" "}
-                <button
-                  onClick={() => navigate("/login")}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
+          {!window.ethereum && (
+            <div className="mt-4 text-center">
+              <p className="text-sm text-gray-600">
+                Please install MetaMask to use this application.{" "}
+                <a
+                  href="https://metamask.io/download/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-blue-600 hover:text-blue-500"
                 >
-                  Login here
-                </button>
+                  Download MetaMask
+                </a>
               </p>
             </div>
-          </div>
+          )}
         </div>
-      </main>
+      </div>
     </div>
   );
 };

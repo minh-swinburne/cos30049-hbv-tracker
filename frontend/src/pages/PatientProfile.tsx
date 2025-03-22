@@ -1,169 +1,203 @@
-/*
-Authors: 
-- Le Luu Phuoc Thinh
-- Nguyen Thi Thanh Minh
-- Nguyen Quy Hung
-- Vo Thi Kim Huyen
-- Dinh Danh Nam
+/**
+ * @file PatientProfile.tsx
+ * @description Patient profile page showing vaccination history and details
+ * @author Group 3
+ * @date 2024-03-20
+ */
 
-Group 3 - COS30049
-*/
-
-import { FC, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { FC, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useMetaMask } from "../hooks/useMetaMask";
+import { graphClient } from "../api/graphClient";
+import { blockchainClient } from "../api/blockchainClient";
+import type { Patient, VaccinationRecord } from "../api/graphClient";
 import AppHeader from "../components/AppHeader";
-import { runQuery } from "../data/neo4jConfig";
 
-interface Vaccination {
-  id: string;
-  date: string;
-  type: string;
-  provider: {
-    id: string;
-    name: string;
-  };
-}
-
-interface Patient {
-  id: string;
-  region: string;
-  vaccinations: Vaccination[];
+interface PatientProfileState {
+  patient: Patient | null;
+  vaccinations: VaccinationRecord[];
+  isLoading: boolean;
+  error: string | null;
 }
 
 const PatientProfile: FC = () => {
-  const { patientId } = useParams<{ patientId: string }>();
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { account, isConnected } = useMetaMask();
+  const [state, setState] = useState<PatientProfileState>({
+    patient: null,
+    vaccinations: [],
+    isLoading: true,
+    error: null,
+  });
 
   useEffect(() => {
+    if (!isConnected || !account) {
+      navigate("/login");
+      return;
+    }
+
     const fetchPatientData = async () => {
       try {
-        const query = `
-          MATCH (p:Patient {id: $patientId})
-          OPTIONAL MATCH (p)-[r:RECEIVED]->(v:Vaccination)
-          OPTIONAL MATCH (v)-[a:ADMINISTERED_BY]->(h:HealthcareProvider)
-          RETURN p.id as id, p.region as region,
-                 collect({
-                   id: v.id,
-                   date: v.date,
-                   type: v.type,
-                   provider: {
-                     id: h.id,
-                     name: h.name
-                   }
-                 }) as vaccinations
-        `;
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-        const result = await runQuery(query, { patientId });
+        // Fetch patient data
+        const patient = await graphClient.getPatient(account);
 
-        if (result.length === 0) {
-          setError("Patient not found");
-          return;
-        }
+        // Fetch vaccination history
+        const vaccinations = await graphClient.getPatientVaccinations(account);
 
-        const record = result[0];
-        setPatient({
-          id: record.get("id"),
-          region: record.get("region"),
-          vaccinations: record.get("vaccinations"),
+        setState({
+          patient,
+          vaccinations,
+          isLoading: false,
+          error: null,
         });
-      } catch (err) {
-        setError("Error fetching patient data");
-        console.error(err);
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: "Failed to load patient data. Please try again.",
+        }));
       }
     };
 
-    if (patientId) {
-      fetchPatientData();
-    }
-  }, [patientId]);
+    fetchPatientData();
+  }, [account, isConnected, navigate]);
 
-  if (loading) {
+  if (state.isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
+        </div>
       </div>
     );
   }
 
-  if (error || !patient) {
+  if (state.error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-red-600 text-xl">
-          {error || "No patient data available"}
+        <div className="text-center">
+          <div className="text-red-600 mb-4">{state.error}</div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!state.patient) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Patient profile not found.</p>
+          <button
+            onClick={() => navigate("/register?type=patient")}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Register as Patient
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppHeader
-        title="Patient Profile"
-        description="View vaccination history and details"
-      />
-
-      <main className="container mx-auto px-4 py-8">
-        {/* Patient Information */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Patient Information
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white shadow rounded-lg p-6 mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Patient Profile
+          </h1>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <p className="text-gray-600">Patient ID</p>
-              <p className="text-lg font-medium">{patient.id}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Region</p>
-              <p className="text-lg font-medium">{patient.region}</p>
+              <h2 className="text-lg font-medium text-gray-900 mb-2">
+                Personal Information
+              </h2>
+              <dl className="grid grid-cols-1 gap-4">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Name</dt>
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {state.patient.name}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Region</dt>
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {state.patient.region}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">
+                    Wallet Address
+                  </dt>
+                  <dd className="mt-1 text-sm text-gray-900 font-mono">
+                    {state.patient.wallet_address}
+                  </dd>
+                </div>
+              </dl>
             </div>
           </div>
         </div>
 
-        {/* Vaccination History */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
             Vaccination History
           </h2>
-          {patient.vaccinations.length === 0 ? (
-            <p className="text-gray-600">No vaccination records found.</p>
+          {state.vaccinations.length === 0 ? (
+            <p className="text-gray-500">No vaccination records found.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Vaccination ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
+                      Vaccine Type
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Healthcare Provider
+                      Batch Number
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Provider
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {patient.vaccinations.map((vaccination) => (
-                    <tr key={vaccination.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {vaccination.id}
+                  {state.vaccinations.map((record) => (
+                    <tr key={record.vaccination.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(record.vaccination.date).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(vaccination.date).toLocaleDateString()}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {record.vaccination.vaccine_type}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {vaccination.type}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {record.vaccination.batch_number}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {vaccination.provider.name}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {record.provider.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            record.vaccination.status === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {record.vaccination.status}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -172,7 +206,7 @@ const PatientProfile: FC = () => {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 };
