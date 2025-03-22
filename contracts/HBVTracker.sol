@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-
 contract HBVTracker {
-    using ECDSA for bytes32;
-
     struct VaccinationRecord {
         bytes32 dataHash;
         uint256 timestamp;
@@ -32,27 +28,23 @@ contract HBVTracker {
     }
 
     // Store vaccination hash (Multiple records per patient)
-    function storeHash(bytes32 dataHash, bytes memory signature) public {
+    function storeHash(address patient, bytes32 dataHash) public {
         require(
             authorizedHealthcareProviders[msg.sender],
             "Not an authorized healthcare provider"
         );
-        require(
-            verifySignature(msg.sender, dataHash, signature),
-            "Invalid signature"
-        );
 
-        vaccinationRecords[msg.sender].push(VaccinationRecord(dataHash, block.timestamp));
-        emit VaccinationStored(msg.sender, dataHash);
+        vaccinationRecords[patient].push(VaccinationRecord(dataHash, block.timestamp));
+        emit VaccinationStored(patient, dataHash);
     }
 
     // Retrieve all vaccination records for a patient
-    function getHashes(address user) public view returns (bytes32[] memory) {
-        require(vaccinationRecords[user].length > 0, "No vaccination records found");
+    function getHashes(address patient) public view returns (bytes32[] memory) {
+        require(vaccinationRecords[patient].length > 0, "No vaccination records found");
 
-        bytes32[] memory hashes = new bytes32[](vaccinationRecords[user].length);
-        for (uint256 i = 0; i < vaccinationRecords[user].length; i++) {
-            hashes[i] = vaccinationRecords[user][i].dataHash;
+        bytes32[] memory hashes = new bytes32[](vaccinationRecords[patient].length);
+        for (uint256 i = 0; i < vaccinationRecords[patient].length; i++) {
+            hashes[i] = vaccinationRecords[patient][i].dataHash;
         }
         return hashes;
     }
@@ -66,17 +58,5 @@ contract HBVTracker {
     // Verify if a researcher has access
     function isResearcherAuthorized(address researcher) public view returns (bool) {
         return authorizedResearchers[researcher];
-    }
-
-    // Verify a signature using OpenZeppelin's ECDSA
-    function verifySignature(
-        address signer,
-        bytes32 dataHash,
-        bytes memory signature
-    ) internal pure returns (bool) {
-        bytes32 ethSignedMessageHash = keccak256(
-            abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash)
-        );
-        return ethSignedMessageHash.recover(signature) == signer;
     }
 }
