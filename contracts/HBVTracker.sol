@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-
 contract HBVTracker {
-    using ECDSA for bytes32;
-
     struct VaccinationRecord {
         bytes32 dataHash;
         uint256 timestamp;
@@ -32,11 +28,7 @@ contract HBVTracker {
     }
 
     // Store vaccination hash (Multiple records per patient)
-    function storeHash(address patient, bytes32 dataHash, bytes memory signature) public {
-        require(
-            verifySignature(msg.sender, dataHash, signature),
-            "Invalid signature"
-        );
+    function storeHash(address patient, bytes32 dataHash) public {
         require(
             authorizedHealthcareProviders[msg.sender],
             "Not an authorized healthcare provider"
@@ -58,12 +50,7 @@ contract HBVTracker {
     }
 
     // Grant access to a researcher
-    function grantAccess(address researcher, bytes memory signature) public {
-        require(
-            verifySignature(msg.sender, keccak256(abi.encodePacked(researcher)), signature),
-            "Invalid signature"
-        );
-
+    function grantAccess(address researcher) public {
         authorizedResearchers[researcher] = true;
         emit ResearcherAuthorized(researcher);
     }
@@ -71,17 +58,5 @@ contract HBVTracker {
     // Verify if a researcher has access
     function isResearcherAuthorized(address researcher) public view returns (bool) {
         return authorizedResearchers[researcher];
-    }
-    
-    // Verify a signature using OpenZeppelin's ECDSA
-    function verifySignature(
-        address signer,
-        bytes32 dataHash,
-        bytes memory signature
-    ) internal pure returns (bool) {
-        bytes32 ethSignedMessageHash = keccak256(
-            abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash)
-        );
-        return ethSignedMessageHash.recover(signature) == signer;
     }
 }
