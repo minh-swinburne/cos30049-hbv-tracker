@@ -18,10 +18,14 @@ def load_contract_abi(path) -> list:
 class Settings(BaseSettings):
     frontend_origins: str = "http://localhost:3000,http://localhost:8000"
     blockchain_rpc: str = "http://localhost:8545"
-    
+
     contract_address: str = "0x1234567890abcdef1234567890abcdef12345678"
     contract_abi_path: str = "config/contract_abi.json"
     contract_abi: list = []
+
+    jwt_secret_key: str
+    jwt_algorithm: str
+    jwt_access_expires_in: str
 
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"

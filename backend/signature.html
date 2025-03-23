@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetaMask EIP-712 Signature</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        input, button {
+            padding: 5px;
+            margin: 5px;
+        }
+        button {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h2>MetaMask EIP-712 Signature</h2>
+    <label for="patient">Patient Wallet Address:</label>
+    <input type="text" id="patient" placeholder="0x..." size="42"><br><br>
+
+    <label for="vaccineName">Vaccine Name:</label>
+    <input type="text" id="vaccineName" placeholder="e.g. Pfizer" size="20"><br><br>
+
+    <label for="vaccinationDate">Vaccination Date:</label>
+    <input type="date" id="vaccinationDate"><br><br>
+
+    <label for="vaccinationType">Vaccination Type:</label>
+    <input type="text" id="vaccinationType" placeholder="e.g. Booster" size="20"><br><br>
+
+    <button onclick="signTypedData()">Sign Vaccination Data</button>
+    <p><strong>Message:</strong> <span id="message"></span></p>
+    <p><strong>Signature:</strong> <span id="signature"></span></p>
+
+    <button onclick="signLoginMessage()">Sign Login Message</button>
+    <p><strong>Login Message:</strong> <span id="loginMessage"></span></p>
+    <p><strong>Login Signature:</strong> <span id="loginSignature"></span></p>
+
+    <script>
+        async function signTypedData() {
+            if (!window.ethereum) {
+                alert("MetaMask is not installed. Please install MetaMask first.");
+                return;
+            }
+
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []); // Request account access
+            const signer = provider.getSigner();
+            const address = await signer.getAddress();
+
+            const patient = document.getElementById("patient").value.trim();
+            const vaccineName = document.getElementById("vaccineName").value.trim();
+            const vaccinationDate = document.getElementById("vaccinationDate").value;
+            const vaccinationType = document.getElementById("vaccinationType").value.trim();
+            const verifyingContract = "0x19eC92FC77cb4372036d71D4b3F0935a850f3938"; // Contract address
+
+            const msgParams = {
+                domain: {
+                    name: "HBVTracker",
+                    version: "1",
+                    chainId: 39438144, // Ephemery testnet
+                    verifyingContract: verifyingContract
+                },
+                message: {
+                    contents: "I authorize storing this vaccination record.",
+                    patient: patient,
+                    vaccine: vaccineName,
+                    date: vaccinationDate,
+                    type: vaccinationType
+                },
+                primaryType: "VaccinationRecord",
+                types: {
+                    EIP712Domain: [
+                        { name: "name", type: "string" },
+                        { name: "version", type: "string" },
+                        { name: "chainId", type: "uint256" },
+                        { name: "verifyingContract", type: "address" }
+                    ],
+                    VaccinationRecord: [
+                        { name: "patient", type: "address" },
+                        { name: "vaccine", type: "string" },
+                        { name: "date", type: "string" },
+                        { name: "type", type: "string" }
+                    ]
+                }
+            };
+
+            const signature = await provider.send("eth_signTypedData_v4", [address, JSON.stringify(msgParams)]);
+
+            document.getElementById("message").textContent = JSON.stringify(msgParams);
+            document.getElementById("signature").textContent = signature;
+            console.log("Message:", msgParams);
+            console.log("Signature:", signature);
+        }
+
+        async function signLoginMessage() {
+            if (!window.ethereum) {
+                alert("MetaMask is not installed. Please install MetaMask first.");
+                return;
+            }
+
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            const signer = provider.getSigner();
+            const address = await signer.getAddress();
+
+            const message = `I am logging into the HBV Tracker on ${new Date().toISOString()}`;
+            const signature = await signer.signMessage(message);
+
+            document.getElementById("loginMessage").textContent = message;
+            document.getElementById("loginSignature").textContent = signature;
+
+            console.log("Login Message:", message);
+            console.log("Login Signature:", signature);
+        }
+    </script>
+</body>
+</html>
