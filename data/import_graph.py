@@ -55,21 +55,27 @@ def load_chunked_files_to_neo4j(driver, start=1, end=10):
 def load_custom_data_to_neo4j(driver):
     pid = "481198892932932"
     patient_wallet = "0x4ca32d107c8BF5481aA8EE9C0d287F7F5aDe62EE"
-    v1_data_hash = "0x2cd7a0c0fa622509b6ef40185a69548bd233034c0473ca304981982c7d352a0e"
-    v1_tx_hash = "0xf364a7f947a13fc09b4fa86f0c8feacebfbb5313ef2d0c7bf8eb3f1e19095e18"
-    v2_data_hash = "0xe9fc4b4cab511fee98e9315816a5d87de783759c1ffd4785f3446bc55f5ace84"
-    v2_tx_hash = "0xcb027bd76960ccfaa82aac26bef845397eb3ef90fdefa8d340f8378a981827ad"
-    healthcare_provider_wallet = "0xD607C8B31cD9DFEBa82DaC425e69B126B24eD2F3"
+    healthcare_provider_wallet = "0xEAfB5ac55900871bebA44C5A4241CFc094575a56"
+
+    v1_data_hash = "0x28967b28e7143cacbecf950efca28d3b22062e906578fadcb340b6a991dc2665"
+    v1_tx_hash = "0x15365fca84a527b04c1151a7863879ae4b74d184b92f893ded53a9f196355bc3"
+
+    v2_data_hash = "0xf392b9511fcf3f8c20b7c9fb136b127df7c84f370ee3fb5a7165e002c0f7f614"
+    v2_tx_hash = "0xfffbebab5cb8b5e86958148aa62a889d68e959ef4ad09894e6d47cd5a5cef17a"
 
     cypher_query = f"""
-MATCH (h:HealthcareProvider {{name: 'Bệnh viện Hoàn Mỹ Đà Nẵng', type: 'BV'}}) SET h.wallet = '{healthcare_provider_wallet}'
-CREATE (n:Patient {{pid: '{pid}', wallet: '{patient_wallet}', sex: 'nu', dob: '2020-03-14', ethnic: 'Kinh', reg_province: 'Đà Nẵng', reg_district: 'Hải Châu', reg_commune: 'Hòa Cường Bắc'}})
-CREATE (v1:Vaccination {{pid: '{pid}', name: 'Quinvaxem', date: '2021-09-01', type: 'TCCD', data_hash: '{v1_data_hash}', tx_hash: '{v1_tx_hash}'}})
-CREATE (v2:Vaccination {{pid: '{pid}', name: 'Hexaxim', date: '2022-01-01', type: 'TCMR', data_hash: '{v2_data_hash}', tx_hash: '{v2_tx_hash}'}})
-CREATE (n)-[:RECEIVED]->(v1)
-CREATE (n)-[:RECEIVED]->(v2)
-CREATE (v1)-[:ADMINISTERED_BY]->(h)
-CREATE (v2)-[:ADMINISTERED_BY]->(h);
+MATCH (h:HealthcareProvider {{name: 'Bệnh viện Hoàn Mỹ Đà Nẵng', type: 'BV'}})
+SET h.wallet = '{healthcare_provider_wallet}'
+MERGE (p:Patient {{pid: '{pid}', sex: 'nu', dob: '2020-03-14', ethnic: 'Kinh', reg_province: 'Đà Nẵng', reg_district: 'Hải Châu', reg_commune: 'Hòa Cường Bắc'}})
+SET p.wallet = '{patient_wallet}'
+MERGE (v1:Vaccination {{pid: '{pid}', name: 'Quinvaxem', date: '2021-09-01', type: 'TCCD'}})
+SET v1.data_hash = '{v1_data_hash}', v1.tx_hash = '{v1_tx_hash}'
+MERGE (v2:Vaccination {{pid: '{pid}', name: 'Hexaxim', date: '2022-01-01', type: 'TCMR'}})
+SET v2.data_hash = '{v2_data_hash}', v2.tx_hash = '{v2_tx_hash}'
+MERGE (p)-[:RECEIVED]->(v1)
+MERGE (p)-[:RECEIVED]->(v2)
+MERGE (v1)-[:ADMINISTERED_BY]->(h)
+MERGE (v2)-[:ADMINISTERED_BY]->(h);
 """
     try:
         execute_cypher_query(driver, cypher_query)

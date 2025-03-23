@@ -10,6 +10,7 @@ def create_jwt_token(address: str) -> str:
     expires_delta = parse_timedelta(settings.jwt_access_expires_in)
     payload = {
         "sub": address,
+        "contract": settings.contract_address,
         "iat": datetime.now(timezone.utc),
         "exp": datetime.now(timezone.utc) + expires_delta,
     }

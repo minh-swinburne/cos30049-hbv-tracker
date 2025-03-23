@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Body, Path
 from app.api.dependencies import secure_endpoint
 from app.core.graph import AsyncDriver, get_driver, extract_graph_data
+from app.blockchain import is_authorized_healthcare_provider
 from app.schemas import AuthDetails, GraphData, GraphPatient
 
 
@@ -45,6 +46,11 @@ async def create_patient(
 ):
     """Create a new patient node (if not exists) in the graph database."""
     # Check if payload.sub is an authorized healthcare provider
+    if not is_authorized_healthcare_provider(payload.sub):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized access: healthcare provider only",
+        )
 
     cypher_query = f"""
     MERGE (p:Patient {{pid: '{patient.pid}'}})

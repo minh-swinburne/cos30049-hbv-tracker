@@ -1,5 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.core.settings import settings
 from app.auth.jwt import verify_jwt_token
 from app.schemas import AuthDetails
 
@@ -19,6 +20,16 @@ async def secure_endpoint(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid address",
+            )
+        if not payload.contract.startswith("0x"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid contract address",
+            )
+        if payload.contract != settings.contract_address:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect contract address",
             )
         return payload
     except Exception as e:
