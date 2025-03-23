@@ -133,6 +133,11 @@
 						"internalType": "bytes32[]",
 						"name": "",
 						"type": "bytes32[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "",
+						"type": "uint256[]"
 					}
 				],
 				"stateMutability": "view",
@@ -217,11 +222,11 @@
 	},
 	"sources": {
 		"contracts/HBVTracker.sol": {
-			"keccak256": "0x9d15f80d2911e1ed12304779da0ab7912235e12c85cdb88ece83c73e86801c50",
+			"keccak256": "0x8f529d8a29f51322b4a0bf21a7f1fd50d4fe000fe7e63097d0224f9c6fc4e634",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://f419a199c811586f1d55702edf0c8d42353ea98bd645cd5f14fa8d42fdeb213c",
-				"dweb:/ipfs/QmWJvuQKyQQVgsVauUaY1o7VBQDg7XMnVUkFAfEaTcveTg"
+				"bzz-raw://0898eb5fc1b5b316c20820c962fadc66fd1e269d9b6f3188ef5e66bac8dcb73f",
+				"dweb:/ipfs/QmYq3yU86CQxCAw1aa6x2esRXG9dugiTujLXdYkxLYwpUS"
 			]
 		}
 	},

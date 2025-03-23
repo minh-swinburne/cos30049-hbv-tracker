@@ -39,14 +39,18 @@ contract HBVTracker {
     }
 
     // Retrieve all vaccination records for a patient
-    function getHashes(address patient) public view returns (bytes32[] memory) {
+    function getHashes(address patient) public view returns (bytes32[] memory, uint256[] memory) {
         require(vaccinationRecords[patient].length > 0, "No vaccination records found");
 
         bytes32[] memory hashes = new bytes32[](vaccinationRecords[patient].length);
+        uint256[] memory timestamps = new uint256[](vaccinationRecords[patient].length);
+
         for (uint256 i = 0; i < vaccinationRecords[patient].length; i++) {
             hashes[i] = vaccinationRecords[patient][i].dataHash;
+            timestamps[i] = vaccinationRecords[patient][i].timestamp;
         }
-        return hashes;
+        
+        return (hashes, timestamps);
     }
 
     // Grant access to a researcher
