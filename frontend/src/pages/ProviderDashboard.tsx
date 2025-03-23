@@ -5,23 +5,22 @@
  * @date 2024-03-20
  */
 
-import React, { FC, useState, useEffect } from "react";
+import { FC, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMetaMask } from "../hooks/useMetaMask";
-import { graphClient } from "../api/graphClient";
-import { blockchainClient } from "../api/blockchainClient";
-import type { HealthcareProvider, VaccinationRecord } from "../api/graphClient";
-import AppHeader from "../components/AppHeader";
 import {
   Bar,
   BarChart,
-  XAxis,
-  YAxis,
   CartesianGrid,
-  Tooltip,
   Legend,
   ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
+import apiClient from "../api";
+import type { HealthcareProvider, VaccinationRecord } from "../api/graph";
+import AppHeader from "../components/AppHeader";
+import { useMetaMask } from "../hooks/useMetaMask";
 
 interface DailyStats {
   date: string;
@@ -67,45 +66,22 @@ const ProviderDashboard: FC = () => {
           error: null,
         }));
 
-        // Fetch provider data
-        const provider = await graphClient.getProvider(account);
-
-        // Fetch vaccination history
-        const vaccinations = await graphClient.getProviderVaccinations(account);
-
-        // Fetch statistics
-        const stats = await graphClient.getVaccinationStats();
+        const provider = await apiClient.graph.getProvider(account);
+        const vaccinations = await apiClient.graph.getProviderVaccinations(
+          account
+        );
 
         setState({
           provider,
-          vaccinations,
+          vaccinations: vaccinations.nodes,
           isLoading: false,
           error: null,
-          stats,
-        });
-
-        // Calculate daily statistics
-        const dailyStatsData = vaccinations.reduce(
-          (acc: { [key: string]: number }, curr: VaccinationRecord) => {
-            const date = new Date(curr.vaccination.date)
-              .toISOString()
-              .split("T")[0];
-            acc[date] = (acc[date] || 0) + 1;
-            return acc;
+          stats: {
+            total_vaccinations: vaccinations.nodes.length,
+            total_patients: new Set(vaccinations.nodes.map((v) => v.pid)).size,
+            total_providers: 1, // Adjust based on actual data
           },
-          {}
-        );
-
-        const dailyStatsDataArray = Object.entries(dailyStatsData).map(
-          ([date, count]) => ({
-            date,
-            count,
-          })
-        );
-
-        setDailyStats(
-          dailyStatsDataArray.sort((a, b) => a.date.localeCompare(b.date))
-        );
+        });
       } catch (error) {
         setState((prev: ProviderDashboardState) => ({
           ...prev,

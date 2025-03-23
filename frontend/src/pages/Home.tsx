@@ -1,5 +1,5 @@
 /*
-Authors: 
+Authors:
 - Le Luu Phuoc Thinh
 - Nguyen Thi Thanh Minh
 - Nguyen Quy Hung
@@ -9,68 +9,31 @@ Authors:
 Group 3 - COS30049
 */
 
-import { FC, useState, useEffect } from "react";
+import { FC, useEffect, useState } from "react";
+import apiClient from "../api";
 import AppHeader from "../components/AppHeader";
+import EntityGraph from "../components/EntityGraph";
 import EntityInfo from "../components/EntityInfo";
+import EntityTable from "../components/EntityTable";
 import SearchBar from "../components/SearchBar";
-import TransactionGraph from "../components/TransactionGraph";
-import TransactionTable from "../components/TransactionTable";
-import { runQuery } from "../data/neo4jConfig";
-
-interface Node {
-  id: string;
-  type: string;
-}
-
-interface Link {
-  source: string;
-  target: string;
-  value: number;
-}
-
-interface GraphData {
-  nodes: Node[];
-  links: Link[];
-}
+import type { GraphData, GraphVaccination, GraphNode } from "../types/graph";
+import type { VaccinationRecord } from "../types/vaccination";
 
 const Home: FC = () => {
-  const [selectedEntity, setSelectedEntity] = useState<Node | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<GraphNode | null>(null);
   const [graphData, setGraphData] = useState<GraphData>({
     nodes: [],
     links: [],
   });
-  const [filteredTransactions, setFilteredTransactions] = useState<Link[]>([]);
+  const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
 
   useEffect(() => {
     const fetchGraphData = async () => {
       try {
-        const nodesQuery = `
-          MATCH (n:Address)
-          RETURN n.id AS id, n.type AS type
-        `;
-
-        const linksQuery = `
-          MATCH (a)-[r:TRANSACTION]->(b)
-          RETURN a.id AS from, b.id AS to, r.value AS value
-        `;
-
-        const nodesResult = await runQuery(nodesQuery);
-        const linksResult = await runQuery(linksQuery);
-
-        const nodes = nodesResult.map((record) => ({
-          id: record.get("id"),
-          type: record.get("type"),
-        }));
-
-        const links = linksResult.map((record) => ({
-          source: record.get("from"),
-          target: record.get("to"),
-          value: record.get("value"),
-        }));
-
-        setGraphData({ nodes, links });
+        const graphData = await apiClient.graph.getAllGraphData();
+        setGraphData(graphData);
       } catch (error) {
-        console.error("Error fetching Neo4j data:", error);
+        console.error("Error fetching graph data:", error);
       }
     };
 
@@ -88,14 +51,14 @@ const Home: FC = () => {
     }
   };
 
-  const handleNodeClick = (node: Node): void => {
+  const handleNodeClick = (node: GraphNode): void => {
     setSelectedEntity(node);
 
-    const relatedTransactions = graphData.links.filter(
+    const relatedEntities = graphData.links.filter(
       (link) => link.source === node.id || link.target === node.id
     );
 
-    setFilteredTransactions(relatedTransactions);
+    setFilteredEntities(relatedEntities);
   };
 
   return (
@@ -138,12 +101,12 @@ const Home: FC = () => {
         )}
 
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <TransactionGraph onNodeClick={handleNodeClick} />
+          <EntityGraph onNodeClick={handleNodeClick} />
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-6">
           <h2 className="text-xl font-semibold mb-4">Transaction Details</h2>
-          <TransactionTable transactions={filteredTransactions} />
+          <EntityTable entities={filteredEntities} />
         </div>
       </main>
 

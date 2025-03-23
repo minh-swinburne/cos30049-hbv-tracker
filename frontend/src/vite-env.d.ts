@@ -1,13 +1,12 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_NEO4J_URI: string
-  readonly VITE_NEO4J_USERNAME: string
-  readonly VITE_NEO4J_PASSWORD: string
-  readonly VITE_AURA_INSTANCEID: string
-  readonly VITE_AURA_INSTANCENAME: string
+  readonly VITE_BLOCKCHAIN_RPC_URL: string;
+  readonly VITE_BLOCKCHAIN_CHAIN_ID: string;
+  readonly VITE_CONTRACT_ADDRESS: string;
+  readonly VITE_CONTRACT_ABI: string;
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
-} 
+}

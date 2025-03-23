@@ -5,13 +5,11 @@
  * @date 2024-03-20
  */
 
-import React, { FC, useState, useEffect } from "react";
+import { FC, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import apiClient from "../api";
+import type { VaccinationRecord } from "../types/vaccination";
 import { useMetaMask } from "../hooks/useMetaMask";
-import { graphClient } from "../api/graphClient";
-import { blockchainClient } from "../api/blockchainClient";
-import type { Patient, VaccinationRecord } from "../api/graphClient";
-import AppHeader from "../components/AppHeader";
 
 interface PatientProfileState {
   patient: Patient | null;
@@ -40,15 +38,14 @@ const PatientProfile: FC = () => {
       try {
         setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-        // Fetch patient data
-        const patient = await graphClient.getPatient(account);
-
-        // Fetch vaccination history
-        const vaccinations = await graphClient.getPatientVaccinations(account);
+        const patient = await apiClient.graph.getPatient(account);
+        const vaccinations = await apiClient.graph.getPatientVaccinations(
+          account
+        );
 
         setState({
           patient,
-          vaccinations,
+          vaccinations: vaccinations.nodes,
           isLoading: false,
           error: null,
         });

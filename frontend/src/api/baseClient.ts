@@ -2,56 +2,80 @@
  * @file baseClient.ts
  * @description Base API client for making HTTP requests
  * @author Group 3
- * @date 2024-03-20
+ * @date 2025-03-20
  */
 
-const BASE_URL = 'http://127.0.0.1:8000/api';
+import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
+
+const BASE_URL = "http://127.0.0.1:8000/api";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
   }
 }
 
-export async function handleResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-    throw new ApiError(response.status, error.message || 'An error occurred');
+export class BaseClient {
+  private axiosInstance: AxiosInstance;
+
+  constructor() {
+    this.axiosInstance = axios.create({
+      baseURL: BASE_URL,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-  return response.json();
-}
 
-export async function get<T>(endpoint: string): Promise<T> {
-  const response = await fetch(`${BASE_URL}${endpoint}`);
-  return handleResponse<T>(response);
-}
+  setAuthorizationToken(token: string) {
+    this.axiosInstance.defaults.headers.common[
+      "Authorization"
+    ] = `Bearer ${token}`;
+  }
 
-export async function post<T>(endpoint: string, data: any): Promise<T> {
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-  return handleResponse<T>(response);
-}
+  clearAuthorizationToken() {
+    delete this.axiosInstance.defaults.headers.common["Authorization"];
+  }
 
-export async function put<T>(endpoint: string, data: any): Promise<T> {
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-  return handleResponse<T>(response);
-}
+  async handleResponse<T>(response: any): Promise<T> {
+    if (response.status >= 400) {
+      const error = response.data || { message: "An error occurred" };
+      throw new ApiError(response.status, error.message || "An error occurred");
+    }
+    return response.data;
+  }
 
-export async function del<T>(endpoint: string): Promise<T> {
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    method: 'DELETE',
-  });
-  return handleResponse<T>(response);
-} 
+  async get<T>(
+    url: string,
+    params?: URLSearchParams,
+    config?: AxiosRequestConfig<any>
+  ): Promise<T> {
+    const response = await this.axiosInstance.get<T>(url, {
+      params,
+      ...config,
+    });
+    return this.handleResponse<T>(response);
+  }
+
+  async post<T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig<any>
+  ): Promise<T> {
+    const response = await this.axiosInstance.post<T>(url, data, config);
+    return this.handleResponse<T>(response);
+  }
+
+  async put<T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig<any>
+  ): Promise<T> {
+    const response = await this.axiosInstance.put<T>(url, data, config);
+    return this.handleResponse<T>(response);
+  }
+
+  async delete<T>(url: string, config?: AxiosRequestConfig<any>): Promise<T> {
+    const response = await this.axiosInstance.delete<T>(url, config);
+    return this.handleResponse<T>(response);
+  }
+}

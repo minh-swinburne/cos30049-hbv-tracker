@@ -1,5 +1,5 @@
 /*
-Authors: 
+Authors:
 - Le Luu Phuoc Thinh
 - Nguyen Thi Thanh Minh
 - Nguyen Quy Hung
@@ -24,15 +24,15 @@ interface Transaction {
   value: number;
 }
 
-interface TransactionTableProps {
-  transactions: Transaction[];
+interface EntityTableProps {
+  entities: Transaction[];
 }
 
-const TransactionTable: FC<TransactionTableProps> = ({ transactions }) => {
-  if (!transactions || transactions.length === 0) {
+const EntityTable: FC<EntityTableProps> = ({ entities }) => {
+  if (!entities || entities.length === 0) {
     return (
       <div className="text-center p-4 text-slate-500">
-        No transactions available.
+        No entities available.
       </div>
     );
   }
@@ -54,7 +54,7 @@ const TransactionTable: FC<TransactionTableProps> = ({ transactions }) => {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-slate-200">
-          {transactions.map((tx, index) => (
+          {entities.map((tx, index) => (
             <tr key={tx.hash || index} className="hover:bg-slate-50">
               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                 {typeof tx.source === "object"
@@ -77,4 +77,4 @@ const TransactionTable: FC<TransactionTableProps> = ({ transactions }) => {
   );
 };
 
-export default TransactionTable;
+export default EntityTable;

@@ -1,5 +1,5 @@
 /*
-Authors: 
+Authors:
 - Le Luu Phuoc Thinh
 - Nguyen Thi Thanh Minh
 - Nguyen Quy Hung
@@ -9,23 +9,23 @@ Authors:
 Group 3 - COS30049
 */
 
+import { QRCodeSVG } from "qrcode.react";
 import { FC, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import apiClient from "../api";
 import AppHeader from "../components/AppHeader";
-import { runQuery } from "../data/neo4jConfig";
-import { QRCodeSVG } from "qrcode.react";
 
 interface VaccinationDetail {
   id: string;
-  date: string;
+  date: Date;
   type: string;
   patient: {
     id: string;
     region: string;
   };
   provider: {
-    id: string;
     name: string;
+    type: string;
   };
   blockchainHash?: string;
   verificationStatus: "Verified" | "Pending" | "Failed";
@@ -42,40 +42,27 @@ const VaccinationDetail: FC = () => {
   useEffect(() => {
     const fetchVaccinationData = async () => {
       try {
-        const query = `
-          MATCH (v:Vaccination {id: $vaccinationId})
-          MATCH (p:Patient)-[:RECEIVED]->(v)
-          MATCH (v)-[:ADMINISTERED_BY]->(h:HealthcareProvider)
-          RETURN v.id as id, v.date as date, v.type as type,
-                 p.id as patientId, p.region as patientRegion,
-                 h.id as providerId, h.name as providerName,
-                 v.blockchainHash as blockchainHash
-        `;
+        const result = await apiClient.graph.getVaccination(vaccinationId!);
 
-        const result = await runQuery(query, { vaccinationId });
-
-        if (result.length === 0) {
+        if (!result) {
           setError("Vaccination record not found");
           return;
         }
 
-        const record = result[0];
         setVaccination({
-          id: record.get("id"),
-          date: record.get("date"),
-          type: record.get("type"),
+          id: result.pid,
+          date: result.date,
+          type: result.type,
           patient: {
-            id: record.get("patientId"),
-            region: record.get("patientRegion"),
+            id: result.patientId,
+            region: result.patientRegion,
           },
           provider: {
-            id: record.get("providerId"),
-            name: record.get("providerName"),
+            id: result.providerId,
+            name: result.providerName,
           },
-          blockchainHash: record.get("blockchainHash"),
-          verificationStatus: record.get("blockchainHash")
-            ? "Verified"
-            : "Pending",
+          blockchainHash: result.blockchainHash,
+          verificationStatus: result.blockchainHash ? "Verified" : "Pending",
         });
       } catch (err) {
         setError("Error fetching vaccination data");

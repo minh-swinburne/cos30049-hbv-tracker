@@ -5,10 +5,10 @@
  * @date 2024-03-20
  */
 
-import React, { FC, useState, useEffect } from "react";
+import { FC, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { graphClient } from "../api/graph";
 import { useMetaMask } from "../hooks/useMetaMask";
-import { graphClient } from "../api/graphClient";
 
 interface LoginState {
   isConnecting: boolean;

@@ -5,12 +5,11 @@
  * @date 2024-03-20
  */
 
-import React, { FC, useState, useEffect } from "react";
+import React, { FC, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import apiClient from "../api";
+import type { Patient } from "../api/graph";
 import { useMetaMask } from "../hooks/useMetaMask";
-import { graphClient } from "../api/graphClient";
-import { blockchainClient } from "../api/blockchainClient";
-import type { Patient } from "../api/graphClient";
 
 interface NewVaccinationState {
   isLoading: boolean;
@@ -46,8 +45,12 @@ const NewVaccination: FC = () => {
     const fetchPatients = async () => {
       try {
         setState((prev) => ({ ...prev, isLoading: true, error: null }));
-        const patients = await graphClient.searchPatients("");
-        setState((prev) => ({ ...prev, patients, isLoading: false }));
+        const patients = await apiClient.graph.getAllGraphData();
+        setState((prev) => ({
+          ...prev,
+          patients: patients.nodes,
+          isLoading: false,
+        }));
       } catch (error) {
         setState((prev) => ({
           ...prev,
@@ -95,24 +98,18 @@ const NewVaccination: FC = () => {
         success: null,
       }));
 
-      // Create vaccination record in the graph database
-      const vaccination = await graphClient.createVaccination({
-        patient_id: state.selectedPatient,
-        provider_id: account,
-        date: state.date,
-        vaccine_type: state.vaccineType,
-        batch_number: state.batchNumber,
-        status: "completed",
-      });
-
-      // Create vaccination record on the blockchain
-      await blockchainClient.createVaccinationRecord({
-        patientAddress: state.selectedPatient,
-        providerAddress: account,
-        vaccineType: state.vaccineType,
-        batchNumber: state.batchNumber,
-        date: state.date,
-        signature: "", // This will be handled by the backend
+      await apiClient.graph.createVaccination({
+        vaccination: {
+          pid: state.selectedPatient,
+          name: state.vaccineType,
+          date: state.date,
+          type: state.batchNumber,
+        },
+        healthcareProvider: {
+          wallet: account,
+          name: "Provider Name", // Replace with actual provider name
+          type: "Healthcare",
+        },
       });
 
       setState((prev) => ({
@@ -121,16 +118,6 @@ const NewVaccination: FC = () => {
         isLoading: false,
       }));
 
-      // Reset form
-      setState((prev) => ({
-        ...prev,
-        selectedPatient: "",
-        vaccineType: "",
-        batchNumber: "",
-        date: new Date().toISOString().split("T")[0],
-      }));
-
-      // Redirect after 2 seconds
       setTimeout(() => {
         navigate("/provider-dashboard");
       }, 2000);

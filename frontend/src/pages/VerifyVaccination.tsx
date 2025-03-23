@@ -1,5 +1,5 @@
 /*
-Authors: 
+Authors:
 - Le Luu Phuoc Thinh
 - Nguyen Thi Thanh Minh
 - Nguyen Quy Hung
@@ -11,8 +11,8 @@ Group 3 - COS30049
 
 import { FC, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import apiClient from "../api";
 import AppHeader from "../components/AppHeader";
-import { runQuery } from "../data/neo4jConfig";
 
 interface VerificationResult {
   isValid: boolean;
@@ -32,15 +32,9 @@ const VerifyVaccination: FC = () => {
     setResult(null);
 
     try {
-      // Query to find vaccination record by blockchain hash
-      const query = `
-        MATCH (v:Vaccination {blockchainHash: $hash})
-        RETURN v.id as id
-      `;
+      const queryResult = await apiClient.graph.getVaccination(transactionHash);
 
-      const queryResult = await runQuery(query, { hash: transactionHash });
-
-      if (queryResult.length === 0) {
+      if (!queryResult) {
         setResult({
           isValid: false,
           message: "No vaccination record found with this transaction hash.",
@@ -48,11 +42,10 @@ const VerifyVaccination: FC = () => {
         return;
       }
 
-      const vaccinationId = queryResult[0].get("id");
+      const vaccinationId = queryResult.pid;
 
-      // In a real application, you would verify the blockchain transaction here
-      // For now, we'll simulate the verification
-      const isValid = true; // This would be the result of blockchain verification
+      // Simulate blockchain verification
+      const isValid = true;
 
       setResult({
         isValid,
