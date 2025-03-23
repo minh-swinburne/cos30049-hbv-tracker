@@ -37,7 +37,7 @@ async def create_vaccination(
     healthcare_provider: GraphHealthcareProvider = Body(...),
     driver: AsyncDriver = Depends(get_driver),
     payload: AuthDetails = Depends(secure_endpoint),
-):
+) -> GraphVaccination:
     """Create a new vaccination node (if not exists) in the graph database."""
     # Check if payload.sub is an authorized healthcare provider
 

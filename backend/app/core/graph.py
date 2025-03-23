@@ -26,8 +26,28 @@ def setup_graph_db():
         print("❌ Failed to connect to Neo4j:", e)
 
 
+def map_node(node: dict) -> GraphNode:
+    if node.get("ethnic") is not None:
+        id = node.get("pid")
+        type = "Patient"
+        data = GraphPatient.model_validate(node)
+    elif node.get("date") is not None:
+        id = f"{node.get('pid')}_{node.get('name')}_{node.get('date')}"
+        type = "Vaccination"
+        data = GraphVaccination.model_validate(node)
+    elif node.get("type") is not None:
+        id = f"{node.get('type')}_{node.get('name')}"
+        type = "HealthcareProvider"
+        data = GraphHealthcareProvider.model_validate(node)
+    else:
+        raise ValueError("Invalid node type:", node)
+    return GraphNode(id=id, type=type, data=data)
+
+
 def extract_graph_data(data: list[dict[str]]) -> GraphData:
-    """Extract graph data from a list of records."""
+    """Extract graph data from a list of records. The input needs to be the result from this Cypher query:
+    MATCH r=(:Patient)-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider)
+    """
     graph_data = GraphData(
         nodes=[],
         links=[],

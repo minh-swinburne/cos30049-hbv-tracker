@@ -82,7 +82,7 @@ async def get_vaccination_hashes(
 @router.get("/verify/{address}")
 async def verify_vaccination_hash(
     address: str = Path(...),
-    tx_hash: str = Query(...),
+    tx_hash: str = Query(..., alias="txHash"),
 ) -> EthHash:
     """
     Verify a vaccination record hash on the blockchain.

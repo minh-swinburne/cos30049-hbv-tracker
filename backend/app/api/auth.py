@@ -20,4 +20,4 @@ async def generate_access_token(
         )
 
     token = create_jwt_token(address)
-    return AuthToken(access_token=token, token_type="bearer")
+    return AuthToken(access_token=token, token_type="bearer").model_dump(by_alias=True)

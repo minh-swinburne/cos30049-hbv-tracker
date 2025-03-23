@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from app.api.dependencies import secure_endpoint
-from app.core.graph import AsyncDriver, get_driver, extract_graph_data
-from app.schemas import AuthDetails, GraphData
+from app.core.graph import AsyncDriver, get_driver, map_node, extract_graph_data
+from app.schemas import AuthDetails, GraphData, GraphLink
 from . import patient
 from . import provider
 from . import vaccination
@@ -25,17 +25,81 @@ async def read_graph_db_address(
 
 @router.get("/all")
 async def read_graph_db_all(
+    limit: int = Query(10, ge=1, le=1000),
     driver: AsyncDriver = Depends(get_driver),
     payload: AuthDetails = Depends(secure_endpoint),
 ) -> GraphData:
     """Fetch all nodes and relationships from the graph database."""
 
-    cypher_query = """
+    cypher_query = f"""
         MATCH r=(:Patient)-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider)
-        RETURN r LIMIT 10
+        RETURN r LIMIT {limit}
     """
 
     async with driver.session() as session:
         result = await session.run(cypher_query)
         data = await result.data()
         return extract_graph_data(data)
+
+
+@router.get("/hop")
+async def read_node_hop(
+    id: str = Query(...),
+    type: str = Query(...),
+    driver: AsyncDriver = Depends(get_driver),
+    payload: AuthDetails = Depends(secure_endpoint),
+) -> GraphData:
+    """Fetch nodes and relationships from the graph database related to a node."""
+
+    if type == "Patient":
+        condition = "Patient {pid: '%s'}" % id
+    elif type == "Vaccination":
+        pid, name, date = id.split("_")
+        condition = "Vaccination {pid: '%s', name: '%s', date: '%s'}" % (pid, name, date)
+    elif type == "HealthcareProvider":
+        type, name = id.split("_")
+        condition = "HealthcareProvider {type: '%s', name: '%s'}" % (type, name)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid node type",
+        )
+
+    cypher_query = f"""
+        MATCH (n:{condition})
+        OPTIONAL MATCH (n)-[r_out]->(n_target)
+        OPTIONAL MATCH (n)<-[r_in]-(n_source)
+        RETURN
+            n AS node,
+            collect(DISTINCT r_out) as out,
+            collect(DISTINCT r_in) as in,
+            collect(DISTINCT n_target) as target,
+            collect(DISTINCT n_source) as source
+    """
+
+    async with driver.session() as session:
+        result = await session.run(cypher_query)
+        data = await result.data()
+        graph = GraphData(
+            nodes=[],
+            links=[],
+        )
+
+        for record in data:
+            node = record.get("node")
+            out = record.get("out")
+            in_ = record.get("in")
+
+            node = map_node(node)
+            graph.nodes.append(node)
+
+            for link in out:
+                target = map_node(link[2])
+                graph.nodes.append(target)
+                graph.links.append(GraphLink(source=node.id, target=target.id, type=link[1]))
+            for link in in_:
+                source = map_node(link[0])
+                graph.nodes.append(source)
+                graph.links.append(GraphLink(source=source.id, target=node.id, type=link[1]))
+
+        return graph
