@@ -13,6 +13,7 @@ import { graphClient } from "./graph";
 const baseClient = new BaseClient();
 
 const apiClient = {
+  baseClient,
   auth: authClient(baseClient),
   graph: graphClient(baseClient),
   blockchain: blockchainClient(baseClient),

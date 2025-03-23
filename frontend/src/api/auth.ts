@@ -13,4 +13,5 @@ const prefix = "/auth";
 export const authClient = (client: BaseClient) => ({
   generateToken: (message: string, signature: string): Promise<AuthToken> =>
     client.post<AuthToken>(`${prefix}/token`, { message, signature }),
+  verifyToken: (): Promise<boolean> => client.get<boolean>(`${prefix}/verify`),
 });

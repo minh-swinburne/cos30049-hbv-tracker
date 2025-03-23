@@ -57,8 +57,6 @@ const Home: FC = () => {
     const relatedEntities = graphData.links.filter(
       (link) => link.source === node.id || link.target === node.id
     );
-
-    setFilteredEntities(relatedEntities);
   };
 
   return (
@@ -106,7 +104,7 @@ const Home: FC = () => {
 
         <div className="bg-white rounded-xl shadow-md p-6">
           <h2 className="text-xl font-semibold mb-4">Transaction Details</h2>
-          <EntityTable entities={filteredEntities} />
+          {/* <EntityTable entities={filteredEntities} /> */}
         </div>
       </main>
 

@@ -16,4 +16,14 @@ export const blockchainClient = (client: BaseClient) => ({
 
   verifyTx: (address: string, txHash: string): Promise<EthHash> =>
     client.get(`${prefix}/verify/${address}?txHash=${txHash}`),
+
+  checkProviderRegistration: (
+    address: string
+  ): Promise<{ authorized: boolean }> =>
+    client.get(`${prefix}/provider/${address}`),
+
+  checkResearcherRegistration: (
+    address: string
+  ): Promise<{ authorized: boolean }> =>
+    client.get(`${prefix}/researcher/${address}`),
 });
