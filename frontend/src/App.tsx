@@ -28,6 +28,7 @@ import VerifyVaccination from "./pages/VerifyVaccination";
 import ApiDocs from "./pages/ApiDocs";
 import AdminDashboard from "./pages/AdminDashboard";
 import NewVaccination from "./pages/NewVaccination";
+import AddVaccination from "./pages/AddVaccination";
 
 // Public routes that don't require authentication
 const publicRoutes = [
@@ -46,6 +47,7 @@ const protectedRoutes = [
   { path: "/vaccination/:id", element: <VaccinationDetail /> },
   { path: "/admin", element: <AdminDashboard /> },
   { path: "/vaccination/new", element: <NewVaccination /> },
+  { path: "/vaccination/add", element: <AddVaccination /> },
 ];
 
 const App: React.FC = () => {

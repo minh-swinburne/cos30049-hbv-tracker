@@ -10,6 +10,18 @@ import { BaseClient } from "./baseClient";
 
 const prefix = "/blockchain";
 
+interface VaccinationRecord {
+  patient: string;
+  vaccine: string;
+  date: string;
+  type: string;
+}
+
+interface BlockchainResponse {
+  message: any;
+  signature: string;
+}
+
 export const blockchainClient = (client: BaseClient) => ({
   getHashes: (address: string): Promise<EthRecord[]> =>
     client.get(`${prefix}/get/${address}`),
@@ -26,4 +38,7 @@ export const blockchainClient = (client: BaseClient) => ({
     address: string
   ): Promise<{ authorized: boolean }> =>
     client.get(`${prefix}/researcher/${address}`),
+
+  createVaccinationRecord: (data: VaccinationRecord): Promise<BlockchainResponse> =>
+    client.post(`${prefix}/vaccination/create`, data),
 });

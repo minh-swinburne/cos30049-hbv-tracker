@@ -11,9 +11,11 @@ Group 3 - COS30049
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useMetaMask } from "../hooks/useMetaMask";
 
 const NavigationBar: React.FC = () => {
   const location = useLocation();
+  const { account, userType, disconnect } = useMetaMask();
 
   const isActive = (path: string) => {
     return location.pathname === path ? "bg-blue-700" : "";
@@ -40,6 +42,14 @@ const NavigationBar: React.FC = () => {
             Dashboard
           </Link>
           <Link
+            to="/vaccination/add"
+            className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
+              "/vaccination/add"
+            )}`}
+          >
+            Add Vaccination
+          </Link>
+          <Link
             to="/verify"
             className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
               "/verify"
@@ -64,23 +74,43 @@ const NavigationBar: React.FC = () => {
             Admin
           </Link>
         </div>
-        <div className="flex space-x-4">
-          <Link
-            to="/login"
-            className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
-              "/login"
-            )}`}
-          >
-            Login
-          </Link>
-          <Link
-            to="/register"
-            className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
-              "/register"
-            )}`}
-          >
-            Register
-          </Link>
+        <div className="flex items-center space-x-4">
+          {account ? (
+            <>
+              <span className="px-3 py-2 text-sm font-medium">
+                {userType === "healthcareProvider"
+                  ? "Provider"
+                  : userType === "researcher"
+                  ? "Researcher"
+                  : "Patient"}
+              </span>
+              <button
+                onClick={disconnect}
+                className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
+                  "/login"
+                )}`}
+              >
+                Login
+              </Link>
+              <Link
+                to="/register"
+                className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
+                  "/register"
+                )}`}
+              >
+                Register
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

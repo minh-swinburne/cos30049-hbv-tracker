@@ -5,6 +5,8 @@ interface StoreState {
   userType: "healthcareProvider" | "researcher" | "generalUser" | null;
   setToken: (token: string) => void;
   setUserType: (type: "healthcareProvider" | "researcher" | "generalUser") => void;
+  clearToken: () => void;
+  clearUserType: () => void;
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -12,4 +14,6 @@ export const useStore = create<StoreState>((set) => ({
   userType: null,
   setToken: (token) => set({ token }),
   setUserType: (type) => set({ userType: type }),
+  clearToken: () => set({ token: null }),
+  clearUserType: () => set({ userType: null }),
 }));

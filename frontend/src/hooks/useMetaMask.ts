@@ -7,6 +7,7 @@ interface MetaMaskState {
   isConnected: boolean;
   account: string | null;
   error: string | null;
+  userType: "healthcareProvider" | "researcher" | "generalUser" | null;
 }
 
 export const useMetaMask = () => {
@@ -14,9 +15,10 @@ export const useMetaMask = () => {
     isConnected: false,
     account: null,
     error: null,
+    userType: null,
   });
 
-  const { setToken, setUserType } = useStore(); // Access global store actions
+  const { setToken, setUserType, clearToken, clearUserType } = useStore(); // Access global store actions
 
   const checkConnection = useCallback(async () => {
     try {
@@ -30,17 +32,38 @@ export const useMetaMask = () => {
       });
 
       if (accounts.length > 0) {
-        setState({
+        const account = accounts[0];
+        setState((prev) => ({
+          ...prev,
           isConnected: true,
-          account: accounts[0],
+          account,
           error: null,
-        });
+        }));
+
+        // Check user type if connected
+        const isProvider = await apiClient.blockchain.checkProviderRegistration(account);
+        const isResearcher = await apiClient.blockchain.checkResearcherRegistration(account);
+        
+        let userType: "healthcareProvider" | "researcher" | "generalUser";
+        if (isProvider.authorized) {
+          userType = "healthcareProvider";
+        } else if (isResearcher.authorized) {
+          userType = "researcher";
+        } else {
+          userType = "generalUser";
+        }
+
+        setState((prev) => ({
+          ...prev,
+          userType,
+        }));
+        setUserType(userType);
       }
     } catch (error) {
       console.error("Error checking MetaMask connection:", error);
       setState((prev) => ({ ...prev, error: "Error connecting to MetaMask" }));
     }
-  }, []);
+  }, [setUserType]);
 
   const connectWallet = async () => {
     try {
@@ -54,10 +77,10 @@ export const useMetaMask = () => {
       });
 
       const account = accounts[0];
-      setState({ isConnected: true, account, error: null });
+      setState((prev) => ({ ...prev, isConnected: true, account, error: null }));
 
       // Step 1: Sign login message
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = await provider.getSigner();
       const message = `I am logging into the HBV Tracker on ${new Date().toISOString()}`;
       const signature = await signer.signMessage(message);
@@ -69,23 +92,37 @@ export const useMetaMask = () => {
       setToken(token.accessToken);
 
       // Step 3: Check user roles
-      const isProvider = await apiClient.blockchain.checkProviderRegistration(
-        account
-      );
-      const isResearcher =
-        await apiClient.blockchain.checkResearcherRegistration(account);
+      const isProvider = await apiClient.blockchain.checkProviderRegistration(account);
+      const isResearcher = await apiClient.blockchain.checkResearcherRegistration(account);
 
+      let userType: "healthcareProvider" | "researcher" | "generalUser";
       if (isProvider.authorized) {
-        setUserType("healthcareProvider");
+        userType = "healthcareProvider";
       } else if (isResearcher.authorized) {
-        setUserType("researcher");
+        userType = "researcher";
       } else {
-        setUserType("generalUser");
+        userType = "generalUser";
       }
+
+      setState((prev) => ({ ...prev, userType }));
+      setUserType(userType);
     } catch (error) {
       console.error("Error connecting to MetaMask:", error);
       setState((prev) => ({ ...prev, error: "Error connecting to MetaMask" }));
     }
+  };
+
+  const disconnect = () => {
+    localStorage.removeItem("access-token");
+    apiClient.baseClient.setAuthorizationToken("");
+    clearToken();
+    clearUserType();
+    setState({
+      isConnected: false,
+      account: null,
+      error: null,
+      userType: null,
+    });
   };
 
   useEffect(() => {
@@ -97,13 +134,17 @@ export const useMetaMask = () => {
           isConnected: false,
           account: null,
           error: null,
+          userType: null,
         });
+        disconnect();
       } else {
-        setState({
+        setState((prev) => ({
+          ...prev,
           isConnected: true,
           account: accounts[0],
           error: null,
-        });
+        }));
+        checkConnection();
       }
     };
 
@@ -124,5 +165,6 @@ export const useMetaMask = () => {
   return {
     ...state,
     connectWallet,
+    disconnect,
   };
 };
