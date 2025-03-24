@@ -7,8 +7,9 @@
 
 import React, { FC, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { graphClient } from "../api/graph";
+import apiClient from "../api";
 import { useMetaMask } from "../hooks/useMetaMask";
+import MetaMaskIcon from "/metamask-icon.svg";
 
 interface RegistrationState {
   isConnecting: boolean;
@@ -21,6 +22,13 @@ interface RegistrationState {
 interface RegistrationFormData {
   name: string;
   region: string;
+  sex: string;
+  dob: string;
+  ethnic: string;
+  reg_province: string;
+  reg_district: string;
+  reg_commune: string;
+  providerType: string;
 }
 
 const Register: FC = () => {
@@ -43,6 +51,13 @@ const Register: FC = () => {
   const [formData, setFormData] = useState<RegistrationFormData>({
     name: "",
     region: "",
+    sex: "",
+    dob: "",
+    ethnic: "",
+    reg_province: "",
+    reg_district: "",
+    reg_commune: "",
+    providerType: "Healthcare",
   });
 
   useEffect(() => {
@@ -51,7 +66,9 @@ const Register: FC = () => {
     }
   }, [isConnected, account]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -74,18 +91,25 @@ const Register: FC = () => {
     }));
 
     try {
-      // Create the registration data
-      const registrationData = {
-        wallet_address: state.account,
-        name: formData.name,
-        region: formData.region,
-      };
-
-      // Register the user based on type
       if (type === "patient") {
-        await graphClient.registerPatient(registrationData);
+        // Register as patient
+        await apiClient.graph.registerPatient({
+          pid: state.account, // Using wallet address as patient ID
+          wallet: state.account,
+          sex: formData.sex,
+          dob: new Date(formData.dob),
+          ethnic: formData.ethnic,
+          reg_province: formData.reg_province,
+          reg_district: formData.reg_district,
+          reg_commune: formData.reg_commune,
+        });
       } else {
-        await graphClient.registerProvider(registrationData);
+        // Register as healthcare provider
+        await apiClient.graph.registerProvider({
+          wallet: state.account,
+          name: formData.name,
+          type: formData.providerType,
+        });
       }
 
       setState((prev) => ({
@@ -124,7 +148,7 @@ const Register: FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Register as {type === "patient" ? "Patient" : "Healthcare Provider"}
@@ -156,52 +180,146 @@ const Register: FC = () => {
               <button
                 onClick={handleConnect}
                 disabled={state.isConnecting}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
+                <img src={MetaMaskIcon} alt="MetaMask" className="w-5 h-5" />
                 {state.isConnecting ? "Connecting..." : "Connect with MetaMask"}
               </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Name
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-              </div>
+              {type === "patient" ? (
+                <>
+                  <div>
+                    <label htmlFor="sex" className="block text-sm font-medium text-gray-700">
+                      Sex
+                    </label>
+                    <select
+                      id="sex"
+                      name="sex"
+                      value={formData.sex}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select sex</option>
+                      <option value="M">Male</option>
+                      <option value="F">Female</option>
+                      <option value="O">Other</option>
+                    </select>
+                  </div>
 
-              <div>
-                <label
-                  htmlFor="region"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Region
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="region"
-                    name="region"
-                    type="text"
-                    required
-                    value={formData.region}
-                    onChange={handleInputChange}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-              </div>
+                  <div>
+                    <label htmlFor="dob" className="block text-sm font-medium text-gray-700">
+                      Date of Birth
+                    </label>
+                    <input
+                      type="date"
+                      id="dob"
+                      name="dob"
+                      value={formData.dob}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="ethnic" className="block text-sm font-medium text-gray-700">
+                      Ethnic Group
+                    </label>
+                    <input
+                      type="text"
+                      id="ethnic"
+                      name="ethnic"
+                      value={formData.ethnic}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="reg_province" className="block text-sm font-medium text-gray-700">
+                      Province
+                    </label>
+                    <input
+                      type="text"
+                      id="reg_province"
+                      name="reg_province"
+                      value={formData.reg_province}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="reg_district" className="block text-sm font-medium text-gray-700">
+                      District
+                    </label>
+                    <input
+                      type="text"
+                      id="reg_district"
+                      name="reg_district"
+                      value={formData.reg_district}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="reg_commune" className="block text-sm font-medium text-gray-700">
+                      Commune
+                    </label>
+                    <input
+                      type="text"
+                      id="reg_commune"
+                      name="reg_commune"
+                      value={formData.reg_commune}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                      Provider Name
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="providerType" className="block text-sm font-medium text-gray-700">
+                      Provider Type
+                    </label>
+                    <select
+                      id="providerType"
+                      name="providerType"
+                      value={formData.providerType}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="Healthcare">Healthcare</option>
+                      <option value="Hospital">Hospital</option>
+                      <option value="Clinic">Clinic</option>
+                    </select>
+                  </div>
+                </>
+              )}
 
               <div>
                 <button
