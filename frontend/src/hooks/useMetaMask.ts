@@ -36,7 +36,7 @@ export const useMetaMask = () => {
       });
 
       if (accounts.length > 0) {
-        const account = accounts[0];
+        const account = ethers.getAddress(accounts[0]);
         setState((prev) => ({
           ...prev,
           isConnected: true,
@@ -47,7 +47,7 @@ export const useMetaMask = () => {
         // Check user type if connected
         const isProvider = await apiClient.blockchain.checkProviderRegistration(account);
         const isResearcher = await apiClient.blockchain.checkResearcherRegistration(account);
-        
+
         let userType: "healthcareProvider" | "researcher" | "generalUser";
         if (isProvider.authorized) {
           userType = "healthcareProvider";
@@ -105,11 +105,11 @@ export const useMetaMask = () => {
         return;
       }
 
-      const account = accounts[0];
+      const account = ethers.getAddress(accounts[0]);
       setState((prev) => ({ ...prev, isConnected: true, account, error: null }));
 
       // Step 1: Sign login message
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const message = `I am logging into the HBV Tracker on ${new Date().toISOString()}`;
       const signature = await signer.signMessage(message);
@@ -154,7 +154,7 @@ export const useMetaMask = () => {
       // Clear local storage and API client token
       localStorage.removeItem("access-token");
       apiClient.baseClient.setAuthorizationToken("");
-      
+
       // Clear global store state
       clearToken();
       clearUserType();
@@ -206,7 +206,7 @@ export const useMetaMask = () => {
         setState((prev) => ({
           ...prev,
           isConnected: true,
-          account: accounts[0],
+          account: ethers.getAddress(accounts[0]),
           error: null,
         }));
         checkConnection();
