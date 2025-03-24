@@ -1,5 +1,5 @@
 /*
-Authors:
+Authors: 
 - Le Luu Phuoc Thinh
 - Nguyen Thi Thanh Minh
 - Nguyen Quy Hung
@@ -9,14 +9,13 @@ Authors:
 Group 3 - COS30049
 */
 
-import { Logout, Wallet } from "@mui/icons-material"; // Import Wallet and Logout icons
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useMetaMask } from "../hooks/useMetaMask"; // Import useMetaMask hook
+import { useMetaMask } from "../hooks/useMetaMask";
 
 const NavigationBar: React.FC = () => {
   const location = useLocation();
-  const { isConnected, disconnectWallet } = useMetaMask(); // Access MetaMask state and disconnect function
+  const { account, userType, disconnect } = useMetaMask();
 
   const isActive = (path: string) => {
     return location.pathname === path ? "bg-blue-700" : "";
@@ -43,6 +42,14 @@ const NavigationBar: React.FC = () => {
             Dashboard
           </Link>
           <Link
+            to="/vaccination/add"
+            className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
+              "/vaccination/add"
+            )}`}
+          >
+            Add Vaccination
+          </Link>
+          <Link
             to="/verify"
             className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
               "/verify"
@@ -67,15 +74,23 @@ const NavigationBar: React.FC = () => {
             Admin
           </Link>
         </div>
-        <div className="flex space-x-4">
-          {isConnected ? (
-            <button
-              onClick={disconnectWallet}
-              className="px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-blue-700"
-            >
-              Logout
-              <Logout className="w-5 h-5" />
-            </button>
+        <div className="flex items-center space-x-4">
+          {account ? (
+            <>
+              <span className="px-3 py-2 text-sm font-medium">
+                {userType === "healthcareProvider"
+                  ? "Provider"
+                  : userType === "researcher"
+                  ? "Researcher"
+                  : "Patient"}
+              </span>
+              <button
+                onClick={disconnect}
+                className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+              >
+                Logout
+              </button>
+            </>
           ) : (
             <>
               <Link
@@ -84,7 +99,6 @@ const NavigationBar: React.FC = () => {
                   "/login"
                 )}`}
               >
-                <Wallet className="mr-2" />
                 Login
               </Link>
               <Link

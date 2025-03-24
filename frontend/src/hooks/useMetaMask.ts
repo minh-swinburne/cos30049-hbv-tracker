@@ -1,5 +1,5 @@
-import { ethers } from "ethers";
 import { useCallback, useEffect, useState } from "react";
+import { ethers } from "ethers";
 import apiClient from "../api"; // Import the API client
 import { useStore } from "../store"; // Import the global store
 
@@ -7,6 +7,7 @@ interface MetaMaskState {
   isConnected: boolean;
   account: string | null;
   error: string | null;
+  userType: "healthcareProvider" | "researcher" | "generalUser" | null;
 }
 
 export const useMetaMask = () => {
@@ -14,9 +15,10 @@ export const useMetaMask = () => {
     isConnected: false,
     account: null,
     error: null,
+    userType: null,
   });
 
-  const { setToken, setUserType } = useStore(); // Access global store actions
+  const { setToken, setUserType, clearToken, clearUserType } = useStore(); // Access global store actions
 
   const checkConnection = useCallback(async () => {
     try {
@@ -29,24 +31,37 @@ export const useMetaMask = () => {
         return;
       }
 
-      // Check if MetaMask is locked
-      try {
-        const accounts = await window.ethereum.request({
-          method: "eth_accounts",
-        });
+      const accounts = await window.ethereum.request({
+        method: "eth_accounts",
+      });
 
-        if (accounts.length > 0) {
-          setState({
-            isConnected: true,
-            account: ethers.getAddress(accounts[0]),
-            error: null,
-          });
-        }
-      } catch (error) {
+      if (accounts.length > 0) {
+        const account = accounts[0];
         setState((prev) => ({
           ...prev,
-          error: "MetaMask is locked. Please unlock your wallet to continue.",
+          isConnected: true,
+          account,
+          error: null,
         }));
+
+        // Check user type if connected
+        const isProvider = await apiClient.blockchain.checkProviderRegistration(account);
+        const isResearcher = await apiClient.blockchain.checkResearcherRegistration(account);
+        
+        let userType: "healthcareProvider" | "researcher" | "generalUser";
+        if (isProvider.authorized) {
+          userType = "healthcareProvider";
+        } else if (isResearcher.authorized) {
+          userType = "researcher";
+        } else {
+          userType = "generalUser";
+        }
+
+        setState((prev) => ({
+          ...prev,
+          userType,
+        }));
+        setUserType(userType);
       }
     } catch (error) {
       console.error("Error checking MetaMask connection:", error);
@@ -55,10 +70,9 @@ export const useMetaMask = () => {
         error: "Failed to connect to MetaMask. Please try again.",
       }));
     }
-  }, []);
+  }, [setUserType]);
 
   const connectWallet = async () => {
-    console.log("Connecting to MetaMask...");
     try {
       // Check if MetaMask is installed
       if (typeof window.ethereum === "undefined") {
@@ -91,92 +105,41 @@ export const useMetaMask = () => {
         return;
       }
 
-      const account = ethers.getAddress(accounts[0]);
-      setState({ isConnected: true, account, error: null });
+      const account = accounts[0];
+      setState((prev) => ({ ...prev, isConnected: true, account, error: null }));
 
-      // Get provider and signer
-      let provider, signer;
+      // Step 1: Sign login message
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = await provider.getSigner();
+      const message = `I am logging into the HBV Tracker on ${new Date().toISOString()}`;
+      const signature = await signer.signMessage(message);
+
+      // Step 2: Generate JWT token
       try {
-        provider = new ethers.BrowserProvider(window.ethereum);
-        signer = await provider.getSigner();
-      } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          error: "Failed to initialize Web3 provider. Please try again.",
-        }));
-        return;
+        const token = await apiClient.auth.generateToken(account, message, signature);
+        localStorage.setItem("access-token", token.accessToken);
+        apiClient.baseClient.setAuthorizationToken(token.accessToken);
+        setToken(token.accessToken);
+      } catch (tokenError) {
+        console.error("Token generation error:", tokenError);
+        throw new Error("Failed to generate authentication token");
       }
 
-      // Sign login message
-      let signature;
-      try {
-        // Create a more user-friendly message that clearly explains what's being signed
-        const timestamp = new Date().toLocaleString();
-        const message = `Welcome to HBV Tracker!\n\nBy signing this message, you confirm that you want to log in to the HBV Tracker application.\n\nThis signature will not trigger a blockchain transaction or cost any gas fees.\n\nTimestamp: ${timestamp}`;
-        
-        // Add a small delay to ensure MetaMask UI is ready
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        try {
-          signature = await signer.signMessage(message);
-        } catch (signError: any) {
-          if (signError.code === 4001) {
-            throw { code: 4001, message: "User rejected the signature request" };
-          }
-          throw signError;
-        }
+      // Step 3: Check user roles
+      const isProvider = await apiClient.blockchain.checkProviderRegistration(account);
+      const isResearcher = await apiClient.blockchain.checkResearcherRegistration(account);
 
-        // Generate JWT token
-        try {
-          const token = await apiClient.auth.generateToken(account, message, signature);
-          localStorage.setItem("access-token", token.accessToken);
-          apiClient.baseClient.setAuthorizationToken(token.accessToken);
-          setToken(token.accessToken);
-        } catch (tokenError) {
-          console.error("Token generation error:", tokenError);
-          throw new Error("Failed to generate authentication token");
-        }
-      } catch (error: any) {
-        console.error("Signature error:", error);
-        if (error.code === 4001) {
-          setState((prev) => ({
-            ...prev,
-            error: "You need to sign the message to log in. Please try again.",
-          }));
-        } else if (error.message?.includes("authentication token")) {
-          setState((prev) => ({
-            ...prev,
-            error: "Authentication failed. Please try again.",
-          }));
-        } else {
-          setState((prev) => ({
-            ...prev,
-            error: "Failed to complete login. Please make sure your MetaMask is unlocked and try again.",
-          }));
-        }
-        return;
+      let userType: "healthcareProvider" | "researcher" | "generalUser";
+      if (isProvider.authorized) {
+        userType = "healthcareProvider";
+      } else if (isResearcher.authorized) {
+        userType = "researcher";
+      } else {
+        userType = "generalUser";
       }
 
-      // Check user roles
-      try {
-        const [isProvider, isResearcher] = await Promise.all([
-          apiClient.blockchain.checkProviderRegistration(account),
-          apiClient.blockchain.checkResearcherRegistration(account),
-        ]);
-
-        if (isProvider.authorized) {
-          setUserType("healthcareProvider");
-        } else if (isResearcher.authorized) {
-          setUserType("researcher");
-        } else {
-          setUserType("patient");
-        }
-      } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          error: "Failed to verify account type. Please try again.",
-        }));
-      }
+      setState((prev) => ({ ...prev, userType }));
+      setUserType(userType);
     } catch (error) {
       console.error("Error in MetaMask connection process:", error);
       setState((prev) => ({
@@ -186,27 +149,17 @@ export const useMetaMask = () => {
     }
   };
 
-  const disconnectWallet = async () => {
+  const disconnect = () => {
+    localStorage.removeItem("access-token");
+    apiClient.baseClient.setAuthorizationToken("");
+    clearToken();
+    clearUserType();
     setState({
       isConnected: false,
       account: null,
       error: null,
+      userType: null,
     });
-    localStorage.removeItem("access-token"); // Clear stored token
-    apiClient.baseClient.clearAuthorizationToken(); // Remove authorization token
-
-    // Try to revoke permissions in MetaMask
-    if (window.ethereum && window.ethereum.request) {
-      try {
-        await window.ethereum.request({
-          method: "wallet_revokePermissions",
-          params: [{ eth_accounts: {} }],
-        });
-        console.log("Wallet permissions revoked.");
-      } catch (error) {
-        console.error("Failed to revoke permissions:", error);
-      }
-    }
   };
 
   useEffect(() => {
@@ -218,13 +171,17 @@ export const useMetaMask = () => {
           isConnected: false,
           account: null,
           error: null,
+          userType: null,
         });
+        disconnect();
       } else {
-        setState({
+        setState((prev) => ({
+          ...prev,
           isConnected: true,
-          account: ethers.getAddress(accounts[0]), // Convert to checksum address
+          account: accounts[0],
           error: null,
-        });
+        }));
+        checkConnection();
       }
     };
 
@@ -245,6 +202,6 @@ export const useMetaMask = () => {
   return {
     ...state,
     connectWallet,
-    disconnectWallet, // Expose disconnectWallet
+    disconnect,
   };
 };
