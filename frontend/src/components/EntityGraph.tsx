@@ -12,7 +12,8 @@ Group 3 - COS30049
 import { FC, useEffect, useRef, useState } from "react";
 import ForceGraph2D, { ForceGraphMethods } from "react-force-graph-2d";
 import apiClient from "../api";
-import type { GraphData, GraphNode } from "../types/graph";
+import { useStore } from "../store"; // Import the store
+import type { GraphData, GraphLink, GraphNode } from "../types/graph";
 
 interface EntityGraphProps {
   onNodeClick: (node: GraphNode) => void;
@@ -29,12 +30,24 @@ const EntityGraph: FC<EntityGraphProps> = ({ onNodeClick }) => {
   });
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const graphContainerRef = useRef<HTMLDivElement>(null);
-  const graphRef = useRef<ForceGraphMethods | undefined>(undefined);
+  const graphRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(
+    undefined
+  );
+  const { user } = useStore(); // Access the user from the store
 
   useEffect(() => {
     const fetchGraphData = async () => {
+      if (!user) {
+        setGraphData({ nodes: [], links: [] }); // Clear graph data if user is not authenticated
+        return;
+      }
+
       try {
-        const data = await apiClient.graph.getAllGraphData();
+        const data = await apiClient.graph.getNodeHop(
+          undefined,
+          undefined,
+          user.sub
+        );
         setGraphData(data);
         setFilteredGraphData(data);
       } catch (error) {
@@ -43,7 +56,7 @@ const EntityGraph: FC<EntityGraphProps> = ({ onNodeClick }) => {
     };
 
     fetchGraphData();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -98,16 +111,33 @@ const EntityGraph: FC<EntityGraphProps> = ({ onNodeClick }) => {
       ref={graphContainerRef}
       className="relative h-[600px] border border-gray-300 rounded-lg"
     >
-      <ForceGraph2D
-        ref={graphRef}
-        graphData={filteredGraphData}
-        nodeLabel={(node: any) => `${node.id}\n(${node.type})`}
-        nodeColor={(node: any) => (node.type === "eoa" ? "#4299e1" : "#f56565")}
-        linkLabel={(link: any) => `Value: ${link.value}`}
-        onNodeClick={(node: any) => handleNodeClick(node)}
-        width={dimensions.width}
-        height={dimensions.height}
-      />
+      {!user ? (
+        <div className="flex items-center justify-center h-full text-gray-500">
+          Please log in to view the graph.
+        </div>
+      ) : (
+        <ForceGraph2D
+          ref={graphRef}
+          graphData={filteredGraphData}
+          nodeLabel={(node: GraphNode) => `${node.id}\n(${node.type})`}
+          nodeColor={(node: GraphNode) => {
+            switch (node.type) {
+              case "Patient":
+                return "#48bb78"; // Green
+              case "HealthcareProvider":
+                return "#f56565"; // Red
+              case "Vaccination":
+                return "#4299e1"; // Blue
+              default:
+                return "#a0aec0"; // Gray for unknown types
+            }
+          }}
+          linkLabel={(link: GraphLink) => `Value: ${link.type}`}
+          onNodeClick={(node: GraphNode) => handleNodeClick(node)}
+          width={dimensions.width}
+          height={dimensions.height}
+        />
+      )}
 
       {/* Zoom Controls */}
       <div className="absolute bottom-2 left-2 flex flex-col gap-2 bg-white p-2 rounded-lg shadow">
@@ -129,12 +159,16 @@ const EntityGraph: FC<EntityGraphProps> = ({ onNodeClick }) => {
       <div className="absolute top-2 left-2 bg-white p-2 rounded-lg shadow">
         <p className="text-sm font-bold">Legend</p>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-          <span>EOA (Externally Owned Address)</span>
+          <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+          <span>Patient</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-          <span>Contract Address</span>
+          <span>Healthcare Provider</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+          <span>Vaccination</span>
         </div>
       </div>
     </div>

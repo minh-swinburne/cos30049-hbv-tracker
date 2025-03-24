@@ -46,27 +46,30 @@ async def read_graph_db_all(
 async def read_node_hop(
     id: str = Query(...),
     type: str = Query(...),
+    address: str = Query(...),
     driver: AsyncDriver = Depends(get_driver),
     payload: AuthDetails = Depends(secure_endpoint),
 ) -> GraphData:
     """Fetch nodes and relationships from the graph database related to a node."""
 
     if type == "Patient":
-        condition = "Patient {pid: '%s'}" % id
+        condition = ":Patient {pid: '%s'}" % id
     elif type == "Vaccination":
         pid, name, date = id.split("_")
-        condition = "Vaccination {pid: '%s', name: '%s', date: '%s'}" % (pid, name, date)
+        condition = ":Vaccination {pid: '%s', name: '%s', date: '%s'}" % (pid, name, date)
     elif type == "HealthcareProvider":
         type, name = id.split("_")
-        condition = "HealthcareProvider {type: '%s', name: '%s'}" % (type, name)
+        condition = ":HealthcareProvider {type: '%s', name: '%s'}" % (type, name)
+    elif address is not None:
+        condition = f" {{wallet: '{address}'}}"
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid node type",
+            detail="Invalid node type or no address provided",
         )
 
     cypher_query = f"""
-        MATCH (n:{condition})
+        MATCH (n{condition})
         OPTIONAL MATCH (n)-[r_out]->(n_target)
         OPTIONAL MATCH (n)<-[r_in]-(n_source)
         RETURN

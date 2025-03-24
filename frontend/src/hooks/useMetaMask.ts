@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
+import { useCallback, useEffect, useState } from "react";
 import apiClient from "../api"; // Import the API client
 import { useStore } from "../store"; // Import the global store
 
@@ -25,6 +25,17 @@ export const useMetaMask = () => {
         return;
       }
 
+      // Prevent automatic reconnection if no token is stored
+      // const storedToken = localStorage.getItem("access-token");
+      // if (!storedToken) {
+      //   setState({
+      //     isConnected: false,
+      //     account: null,
+      //     error: null,
+      //   });
+      //   return;
+      // }
+
       const accounts = await window.ethereum.request({
         method: "eth_accounts",
       });
@@ -32,7 +43,7 @@ export const useMetaMask = () => {
       if (accounts.length > 0) {
         setState({
           isConnected: true,
-          account: accounts[0],
+          account: ethers.getAddress(accounts[0]), // Convert to checksum address
           error: null,
         });
       }
@@ -43,6 +54,7 @@ export const useMetaMask = () => {
   }, []);
 
   const connectWallet = async () => {
+    console.log("Connecting to MetaMask...");
     try {
       if (typeof window.ethereum === "undefined") {
         setState((prev) => ({ ...prev, error: "Please install MetaMask!" }));
@@ -53,7 +65,7 @@ export const useMetaMask = () => {
         method: "eth_requestAccounts",
       });
 
-      const account = accounts[0];
+      const account = ethers.getAddress(accounts[0]); // Convert to checksum address
       setState({ isConnected: true, account, error: null });
 
       // Step 1: Sign login message
@@ -75,16 +87,42 @@ export const useMetaMask = () => {
       const isResearcher =
         await apiClient.blockchain.checkResearcherRegistration(account);
 
+      console.log("isProvider", isProvider);
+      console.log("isResearcher", isResearcher);
+
       if (isProvider.authorized) {
         setUserType("healthcareProvider");
       } else if (isResearcher.authorized) {
         setUserType("researcher");
       } else {
-        setUserType("generalUser");
+        setUserType("patient");
       }
     } catch (error) {
       console.error("Error connecting to MetaMask:", error);
       setState((prev) => ({ ...prev, error: "Error connecting to MetaMask" }));
+    }
+  };
+
+  const disconnectWallet = async () => {
+    setState({
+      isConnected: false,
+      account: null,
+      error: null,
+    });
+    localStorage.removeItem("access-token"); // Clear stored token
+    apiClient.baseClient.clearAuthorizationToken(); // Remove authorization token
+
+    // Try to revoke permissions in MetaMask
+    if (window.ethereum && window.ethereum.request) {
+      try {
+        await window.ethereum.request({
+          method: "wallet_revokePermissions",
+          params: [{ eth_accounts: {} }],
+        });
+        console.log("Wallet permissions revoked.");
+      } catch (error) {
+        console.error("Failed to revoke permissions:", error);
+      }
     }
   };
 
@@ -101,7 +139,7 @@ export const useMetaMask = () => {
       } else {
         setState({
           isConnected: true,
-          account: accounts[0],
+          account: ethers.getAddress(accounts[0]), // Convert to checksum address
           error: null,
         });
       }
@@ -124,5 +162,6 @@ export const useMetaMask = () => {
   return {
     ...state,
     connectWallet,
+    disconnectWallet, // Expose disconnectWallet
   };
 };
