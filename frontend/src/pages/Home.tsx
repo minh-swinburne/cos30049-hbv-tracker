@@ -10,53 +10,29 @@ Group 3 - COS30049
 */
 
 import { FC, useEffect, useState } from "react";
-import apiClient from "../api";
 import AppHeader from "../components/AppHeader";
 import EntityGraph from "../components/EntityGraph";
 import EntityInfo from "../components/EntityInfo";
-import EntityTable from "../components/EntityTable";
 import SearchBar from "../components/SearchBar";
-import type { GraphData, GraphVaccination, GraphNode } from "../types/graph";
+import type { GraphNode } from "../types/graph";
 import type { VaccinationRecord } from "../types/vaccination";
 
 const Home: FC = () => {
   const [selectedEntity, setSelectedEntity] = useState<GraphNode | null>(null);
-  const [graphData, setGraphData] = useState<GraphData>({
-    nodes: [],
-    links: [],
-  });
   const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
 
   useEffect(() => {
-    const fetchGraphData = async () => {
-      try {
-        const graphData = await apiClient.graph.getAllGraphData();
-        setGraphData(graphData);
-      } catch (error) {
-        console.error("Error fetching graph data:", error);
-      }
-    };
-
-    fetchGraphData();
+    // Remove graphData fetching logic
   }, []);
 
   const handleSearch = (id: string): void => {
-    const entity = graphData.nodes.find((node) => node.id === id);
-
-    if (entity) {
-      setSelectedEntity(entity);
-      handleNodeClick(entity);
-    } else {
-      alert("Entity not found. Please check the ID and try again.");
-    }
+    // Remove graphData dependency
+    alert("Search functionality is not implemented yet.");
   };
 
   const handleNodeClick = (node: GraphNode): void => {
     setSelectedEntity(node);
-
-    const relatedEntities = graphData.links.filter(
-      (link) => link.source === node.id || link.target === node.id
-    );
+    // Remove relatedEntities logic
   };
 
   return (

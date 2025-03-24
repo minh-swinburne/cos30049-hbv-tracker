@@ -26,7 +26,7 @@ export interface GraphVaccination {
 
 export interface GraphNode {
   id: string;
-  type: string;
+  type: "Patient" | "HealthcareProvider" | "Vaccination";
   data: GraphPatient | GraphHealthcareProvider | GraphVaccination;
 }
 

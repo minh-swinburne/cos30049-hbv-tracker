@@ -7,8 +7,9 @@
 
 import { FC, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { graphClient } from "../api/graph";
+import MetaMaskIcon from "/metamask-icon.svg"; // Import MetaMask icon
 import { useMetaMask } from "../hooks/useMetaMask";
+import { useStore } from "../store"; // Import the store
 
 interface LoginState {
   isConnecting: boolean;
@@ -25,6 +26,7 @@ const Login: FC = () => {
     connectWallet,
     error: metaMaskError,
   } = useMetaMask();
+  const { userType } = useStore(); // Get userType from the store
   const [state, setState] = useState<LoginState>({
     isConnecting: false,
     error: null,
@@ -34,44 +36,18 @@ const Login: FC = () => {
 
   useEffect(() => {
     if (isConnected && account) {
-      checkUserType(account);
-    }
-  }, [isConnected, account]);
-
-  const checkUserType = async (walletAddress: string) => {
-    try {
-      // Try to get patient data
-      try {
-        await graphClient.getPatient(walletAddress);
-        setState((prev) => ({ ...prev, userType: "patient" }));
+      if (userType === "patient") {
         navigate("/patient-profile");
-        return;
-      } catch (error) {
-        // Patient not found, try provider
-      }
-
-      // Try to get provider data
-      try {
-        await graphClient.getProvider(walletAddress);
-        setState((prev) => ({ ...prev, userType: "provider" }));
+      } else if (userType === "healthcareProvider") {
         navigate("/provider-dashboard");
-        return;
-      } catch (error) {
-        // Provider not found
+      } else {
+        setState((prev) => ({
+          ...prev,
+          error: "Account not registered. Please register first.",
+        }));
       }
-
-      // If neither patient nor provider found
-      setState((prev) => ({
-        ...prev,
-        error: "Account not registered. Please register first.",
-      }));
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        error: "Error checking user type. Please try again.",
-      }));
     }
-  };
+  }, [isConnected, account, userType, navigate]);
 
   const handleConnect = async () => {
     setState((prev) => ({ ...prev, isConnecting: true, error: null }));
@@ -88,7 +64,7 @@ const Login: FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Sign in to your account
@@ -114,8 +90,9 @@ const Login: FC = () => {
               <button
                 onClick={handleConnect}
                 disabled={state.isConnecting}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
+                <img src={MetaMaskIcon} alt="MetaMask" className="w-5 h-5" />
                 {state.isConnecting ? "Connecting..." : "Connect with MetaMask"}
               </button>
             </div>
