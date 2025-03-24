@@ -149,17 +149,45 @@ export const useMetaMask = () => {
     }
   };
 
-  const disconnect = () => {
-    localStorage.removeItem("access-token");
-    apiClient.baseClient.setAuthorizationToken("");
-    clearToken();
-    clearUserType();
-    setState({
-      isConnected: false,
-      account: null,
-      error: null,
-      userType: null,
-    });
+  const disconnect = async () => {
+    try {
+      // Clear local storage and API client token
+      localStorage.removeItem("access-token");
+      apiClient.baseClient.setAuthorizationToken("");
+      
+      // Clear global store state
+      clearToken();
+      clearUserType();
+
+      // Reset local state
+      setState({
+        isConnected: false,
+        account: null,
+        error: null,
+        userType: null,
+      });
+
+      // Disconnect from MetaMask
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_revokePermissions",
+            params: [{ eth_accounts: {} }],
+          });
+        } catch (error) {
+          console.error("Error disconnecting from MetaMask:", error);
+        }
+      }
+
+      // Force page reload to ensure clean state
+      window.location.reload();
+    } catch (error) {
+      console.error("Error in disconnect process:", error);
+      setState((prev) => ({
+        ...prev,
+        error: "An error occurred while disconnecting. Please try again.",
+      }));
+    }
   };
 
   useEffect(() => {
