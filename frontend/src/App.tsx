@@ -20,14 +20,9 @@ import apiClient from "./api";
 import NavigationBar from "./components/NavigationBar";
 import { useMetaMask } from "./hooks/useMetaMask";
 import AddVaccination from "./pages/AddVaccination";
-import AdminDashboard from "./pages/AdminDashboard";
 import ApiDocs from "./pages/ApiDocs";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
-import NewVaccination from "./pages/NewVaccination";
-import PatientProfile from "./pages/PatientProfile";
-import ProviderDashboard from "./pages/ProviderDashboard";
-import VaccinationDetail from "./pages/VaccinationDetail";
 import VerifyVaccination from "./pages/VerifyVaccination";
 import Wallet from "./pages/Wallet";
 import { useStore } from "./store";
@@ -42,18 +37,21 @@ const publicRoutes = [
 
 // Protected routes that require authentication
 const protectedRoutes = [
-  { path: "/dashboard", element: <Dashboard /> },
-  { path: "/patient-profile", element: <PatientProfile /> },
-  { path: "/provider-dashboard", element: <ProviderDashboard /> },
-  { path: "/vaccination/:id", element: <VaccinationDetail /> },
-  { path: "/admin", element: <AdminDashboard /> },
-  { path: "/vaccination/new", element: <NewVaccination /> },
-  { path: "/vaccination/add", element: <AddVaccination /> },
+  {
+    path: "/dashboard",
+    element: <Dashboard />,
+    allowed: ["healthcareProvider", "researcher"],
+  },
+  {
+    path: "/vaccination/add",
+    element: <AddVaccination />,
+    allowed: ["healthcareProvider"],
+  },
 ];
 
 const App: React.FC = () => {
   const { user, token, setToken, clearToken } = useStore();
-  const { checkConnection } = useMetaMask();
+  const { checkConnection, userType } = useMetaMask(); // Added userType
 
   useEffect(() => {
     console.log("Verifying access token...");
@@ -108,8 +106,11 @@ const App: React.FC = () => {
               key={route.path}
               path={route.path}
               element={
-                // TODO: Add proper authentication check
-                <React.Fragment>{route.element}</React.Fragment>
+                userType && route.allowed.includes(userType) ? (
+                  route.element
+                ) : (
+                  <Navigate to="/" replace />
+                )
               }
             />
           ))}

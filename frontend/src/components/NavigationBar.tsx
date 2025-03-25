@@ -11,7 +11,7 @@ Group 3 - COS30049
 
 import { Logout, Wallet } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
-import { FC, useEffect, useState } from "react";
+import { FC, useEffect } from "react";
 import { MetaMaskAvatar } from "react-metamask-avatar";
 import { Link, useLocation } from "react-router-dom";
 import { useMetaMask } from "../hooks/useMetaMask";
@@ -26,7 +26,7 @@ const StyledAvatarWrapper = styled("div")(({ theme }) => ({
 
 const NavigationBar: FC = () => {
   const location = useLocation();
-  const { account, disconnect, checkConnection } = useMetaMask();
+  const { account, disconnect, checkConnection, userType } = useMetaMask(); // Added userType
 
   useEffect(() => {
     // Update local state whenever `account` changes
@@ -49,22 +49,27 @@ const NavigationBar: FC = () => {
           >
             Home
           </Link>
-          <Link
-            to="/dashboard"
-            className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
-              "/dashboard"
-            )}`}
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/vaccination/add"
-            className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
-              "/vaccination/add"
-            )}`}
-          >
-            Add Vaccination
-          </Link>
+          {userType &&
+            ["healthcareProvider", "researcher"].includes(userType) && (
+              <Link
+                to="/dashboard"
+                className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
+                  "/dashboard"
+                )}`}
+              >
+                Dashboard
+              </Link>
+            )}
+          {userType === "healthcareProvider" && (
+            <Link
+              to="/vaccination/add"
+              className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
+                "/vaccination/add"
+              )}`}
+            >
+              Add Vaccination
+            </Link>
+          )}
           <Link
             to="/verify"
             className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
@@ -80,14 +85,6 @@ const NavigationBar: FC = () => {
             )}`}
           >
             API Docs
-          </Link>
-          <Link
-            to="/admin"
-            className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
-              "/admin"
-            )}`}
-          >
-            Admin
           </Link>
         </div>
         <div className="flex items-center space-x-4">
