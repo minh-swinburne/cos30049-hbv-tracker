@@ -129,20 +129,23 @@ async def search_graph_db(
     """Search the graph database for nodes matching the given query."""
     try:
         cypher_query = f"""
-            CALL {{
+            CALL () {{
                 MATCH r1=(n:Patient {{wallet: '{query}'}})-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider)
                 RETURN r1 AS r, n
             }}
+            RETURN r, n
             UNION ALL
-            CALL {{
+            CALL () {{
                 MATCH r2=(:Patient)-[:RECEIVED]->(n:Vaccination {{tx_hash: '{query}'}})-[:ADMINISTERED_BY]->(:HealthcareProvider)
                 RETURN r2 AS r, n
             }}
+            RETURN r, n
             UNION ALL
-            CALL {{
+            CALL () {{
                 MATCH r3=(:Patient)-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(n:HealthcareProvider {{wallet: '{query}'}})
                 RETURN r3 AS r, n
             }}
+            RETURN r, n
         """
         async with driver.session() as session:
             result = await session.run(cypher_query)
