@@ -54,8 +54,9 @@ const ProviderDashboard: FC = () => {
 
   useEffect(() => {
     if (!isConnected || !account) {
-      navigate("/wallet");
-      return;
+      console.log(isConnected, account);
+      // navigate("/wallet");
+      // return;
     }
 
     const fetchProviderData = async () => {

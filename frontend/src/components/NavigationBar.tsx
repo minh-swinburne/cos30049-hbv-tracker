@@ -11,7 +11,7 @@ Group 3 - COS30049
 
 import { Logout, Wallet } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
-import React from "react";
+import { FC, useEffect, useState } from "react";
 import { MetaMaskAvatar } from "react-metamask-avatar";
 import { Link, useLocation } from "react-router-dom";
 import { useMetaMask } from "../hooks/useMetaMask";
@@ -24,9 +24,14 @@ const StyledAvatarWrapper = styled("div")(({ theme }) => ({
   justifyContent: "center", // Center the avatar horizontally
 }));
 
-const NavigationBar: React.FC = () => {
+const NavigationBar: FC = () => {
   const location = useLocation();
-  const { account, disconnect } = useMetaMask();
+  const { account, disconnect, checkConnection } = useMetaMask();
+
+  useEffect(() => {
+    // Update local state whenever `account` changes
+    checkConnection();
+  }, [account, checkConnection]);
 
   const isActive = (path: string) => {
     return location.pathname === path ? "bg-blue-700" : "";

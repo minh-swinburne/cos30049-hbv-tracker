@@ -20,6 +20,7 @@ interface LoginState {
 }
 
 const Login: FC = () => {
+  const blockchainExplorerUrl = import.meta.env.VITE_BLOCKCHAIN_EXPLORER_URL;
   const navigate = useNavigate();
   const {
     isConnected,

@@ -70,7 +70,6 @@ const App: React.FC = () => {
             clearToken();
           } else {
             setToken(accessToken);
-            // await checkConnection();
           }
         } catch (error) {
           console.error("Error verifying token:", error);

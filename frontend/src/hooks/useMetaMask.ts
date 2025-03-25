@@ -43,16 +43,16 @@ export const useMetaMask = () => {
       // if (accounts.length > 0) {
         const account = ethers.getAddress(accounts[0]);
 
-        // if (account !== user.sub) {
-        //   console.log(
-        //     "MetaMask account does not match user account. Disconnecting..."
-        //   );
-        //   localStorage.removeItem("access-token");
-        //   apiClient.baseClient.clearAuthorizationToken();
-        //   clearToken();
-        //   clearUserType();
-        //   return;
-        // }
+        if (account !== user.sub) {
+          console.log(
+            "MetaMask account does not match user account. Disconnecting..."
+          );
+          localStorage.removeItem("access-token");
+          apiClient.baseClient.clearAuthorizationToken();
+          clearToken();
+          clearUserType();
+          return;
+        }
 
         console.log("MetaMask account matches user account. Proceeding...");
         setState((prev) => ({
