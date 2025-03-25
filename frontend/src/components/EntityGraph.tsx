@@ -121,9 +121,24 @@ const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
       return () => window.removeEventListener("resize", updateDimensions);
     }, []);
 
-    const handleNodeClick = async (node: GraphNode) => {
-      onNodeClick(node);
+    const handleNodeClick = (() => {
+      let clickTimeout: NodeJS.Timeout | null = null;
 
+      return (node: GraphNode) => {
+        if (clickTimeout) {
+          clearTimeout(clickTimeout);
+          clickTimeout = null;
+          handleNodeDoubleClick(node); // Trigger double-click
+        } else {
+          clickTimeout = setTimeout(() => {
+            clickTimeout = null;
+            onNodeClick(node); // Trigger single-click
+          }, 300); // Adjust delay for double-click detection
+        }
+      };
+    })();
+
+    const handleNodeDoubleClick = async (node: GraphNode) => {
       setIsLoading(true); // Set loading to true
       try {
         const data = await apiClient.graph.getNodeHop(
