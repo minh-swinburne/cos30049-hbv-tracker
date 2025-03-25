@@ -21,12 +21,15 @@ export const graphClient = (client: BaseClient) => ({
   getAllGraphData: () => client.get<GraphData>(`${prefix}/all`),
 
   getNodeHop: (id?: string, type?: string, address?: string) =>
-    client.get<GraphData>(`${prefix}/hop?id=${id}&type=${type}&address=${address}`),
+    client.get<GraphData>(
+      `${prefix}/hop?id=${id}&type=${type}&address=${address}`
+    ),
 
-  searchNodes: (query: string) => client.get<GraphData>(`${prefix}/search?query=${query}`),
+  searchNodes: (query: string) =>
+    client.get<GraphData>(`${prefix}/search?query=${query}`),
 
-  getPatient: (address: string) =>
-    client.get<GraphPatient>(`${prefix}/patient/${address}`),
+  getPatient: (pid: string) =>
+    client.get<GraphPatient>(`${prefix}/patient/${pid}`),
 
   getPatientVaccinations: (address: string) =>
     client.get<GraphData>(`${prefix}/patient/${address}/records`),
@@ -44,7 +47,7 @@ export const graphClient = (client: BaseClient) => ({
     client.post<GraphHealthcareProvider>(`${prefix}/provider/create`, data),
 
   getVaccination: (txHash: string) =>
-    client.get<GraphVaccination>(`${prefix}/vaccination/${txHash}`),
+    client.get<GraphData>(`${prefix}/vaccination/${txHash}`),
 
   createVaccination: (data: {
     vaccination: GraphVaccination;

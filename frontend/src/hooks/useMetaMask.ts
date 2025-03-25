@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import apiClient from "../api"; // Import the API client
 import { useStore } from "../store"; // Import the global store
 
@@ -18,9 +18,10 @@ export const useMetaMask = () => {
     userType: null,
   });
 
-  const { setToken, setUserType, clearToken, clearUserType } = useStore(); // Access global store actions
+  const { user, setToken, setUserType, clearToken, clearUserType } = useStore(); // Access global store actions
 
   const checkConnection = useCallback(async () => {
+    console.log("Checking MetaMask connection...");
     try {
       // Check if MetaMask is installed
       if (typeof window.ethereum === "undefined") {
@@ -36,14 +37,31 @@ export const useMetaMask = () => {
         method: "eth_accounts",
       });
 
-      if (accounts.length > 0) {
+      console.log("MetaMask account:", accounts);
+      console.log("User account:", user); // This will now reflect the latest user value
+      if (accounts.length > 0 && user) {
+      // if (accounts.length > 0) {
         const account = ethers.getAddress(accounts[0]);
+
+        // if (account !== user.sub) {
+        //   console.log(
+        //     "MetaMask account does not match user account. Disconnecting..."
+        //   );
+        //   localStorage.removeItem("access-token");
+        //   apiClient.baseClient.clearAuthorizationToken();
+        //   clearToken();
+        //   clearUserType();
+        //   return;
+        // }
+
+        console.log("MetaMask account matches user account. Proceeding...");
         setState((prev) => ({
           ...prev,
           isConnected: true,
           account,
           error: null,
         }));
+        console.log("Connection status:", state.isConnected);
 
         // Check user type if connected
         const isProvider = await apiClient.blockchain.checkProviderRegistration(
@@ -74,7 +92,7 @@ export const useMetaMask = () => {
         error: "Failed to connect to MetaMask. Please try again.",
       }));
     }
-  }, [setUserType]);
+  }, [setUserType, user]); // Include `user` in the dependency array
 
   const connectWallet = async () => {
     try {
@@ -110,19 +128,31 @@ export const useMetaMask = () => {
         return;
       }
 
-      const account = ethers.getAddress(accounts[0]);
-      setState((prev) => ({
-        ...prev,
-        isConnected: true,
-        account,
-        error: null,
-      }));
-
       // Step 1: Sign wallet message
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const message = `I am logging into the HBV Tracker on ${new Date().toISOString()}`;
-      const signature = await signer.signMessage(message);
+      let message: string;
+      let signature: string;
+      let account: string;
+
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        message = `I am logging into the HBV Tracker on ${new Date().toISOString()}`;
+        signature = await signer.signMessage(message);
+        account = ethers.getAddress(accounts[0]);
+        setState((prev) => ({
+          ...prev,
+          isConnected: true,
+          account,
+          error: null,
+        }));
+      } catch (error) {
+        console.error("Error signing message:", error);
+        setState((prev) => ({
+          ...prev,
+          error: "Failed to sign message. Please try again.",
+        }));
+        return;
+      }
 
       // Step 2: Generate JWT token
       try {
@@ -135,8 +165,11 @@ export const useMetaMask = () => {
         apiClient.baseClient.setAuthorizationToken(token.accessToken);
         setToken(token.accessToken);
       } catch (tokenError) {
-        console.error("Token generation error:", tokenError);
-        throw new Error("Failed to generate authentication token");
+        console.error("Error generating token:", tokenError);
+        setState((prev) => ({
+          ...prev,
+          error: "Failed to generate token. Please try again.",
+        }));
       }
 
       // Step 3: Check user roles
@@ -207,14 +240,29 @@ export const useMetaMask = () => {
     }
   };
 
-  useEffect(() => {
-    checkConnection();
-  }, [checkConnection]);
+  const getBalance = useCallback(async () => {
+    if (!state.account || typeof window.ethereum === "undefined") {
+      return null;
+    }
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const balance = await provider.getBalance(state.account);
+      return ethers.formatEther(balance); // Convert balance to Ether
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+      return null;
+    }
+  }, [state.account]);
+
+  // useEffect(() => {
+  //   checkConnection();
+  // }, [checkConnection]);
 
   return {
     ...state,
     checkConnection,
     connectWallet,
     disconnect,
+    getBalance, // Expose the getBalance function
   };
 };

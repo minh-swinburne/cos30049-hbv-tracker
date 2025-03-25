@@ -52,7 +52,7 @@ const protectedRoutes = [
 ];
 
 const App: React.FC = () => {
-  const { setToken } = useStore();
+  const { user, token, setToken, clearToken } = useStore();
   const { checkConnection } = useMetaMask();
 
   useEffect(() => {
@@ -67,10 +67,10 @@ const App: React.FC = () => {
           if (!isValid) {
             localStorage.removeItem("access-token");
             apiClient.baseClient.clearAuthorizationToken();
+            clearToken();
           } else {
-            console.log("Access token verified.");
             setToken(accessToken);
-            checkConnection();
+            // await checkConnection();
           }
         } catch (error) {
           console.error("Error verifying token:", error);
@@ -82,7 +82,15 @@ const App: React.FC = () => {
       console.log("No access token found.");
       apiClient.baseClient.clearAuthorizationToken();
     }
-  }, [setToken, checkConnection]);
+  }, [setToken]);
+
+  useEffect(() => {
+    console.log("Token:", token);
+    console.log("User:", user);
+    if (token && user) {
+      checkConnection();
+    }
+  }, [token, user, checkConnection]);
 
   return (
     <Router>

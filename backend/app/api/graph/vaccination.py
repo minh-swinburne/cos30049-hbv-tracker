@@ -1,7 +1,12 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Body, Path
 from app.api.dependencies import secure_endpoint
-from app.core.graph import AsyncDriver, get_driver
-from app.schemas import AuthDetails, GraphVaccination, GraphHealthcareProvider
+from app.core.graph import AsyncDriver, get_driver, extract_graph_data
+from app.schemas import (
+    AuthDetails,
+    GraphData,
+    GraphVaccination,
+    GraphHealthcareProvider,
+)
 
 
 router = APIRouter(prefix="/vaccination")
@@ -12,11 +17,11 @@ async def read_vaccinations(
     tx_hash: str = Path(..., title="Vaccination Transaction Hash"),
     driver: AsyncDriver = Depends(get_driver),
     payload: AuthDetails = Depends(secure_endpoint),
-) -> GraphVaccination:
+) -> GraphData:
     """Fetch a single vaccination record from the graph database."""
     cypher_query = f"""
-        MATCH (v:Vaccination {{tx_hash: '{tx_hash}'}})
-        RETURN v
+        MATCH r=(Patient)-[:RECEIVED]->(n:Vaccination {{tx_hash: '{tx_hash}'}})-[:ADMINISTERED_BY]->(:HealthcareProvider)
+        RETURN r, n
     """
 
     async with driver.session() as session:
@@ -28,7 +33,7 @@ async def read_vaccinations(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Vaccination not found in the graph database",
             )
-        return GraphVaccination.model_validate(data[0].get("v"))
+        return extract_graph_data(data)
 
 
 @router.post("/create")

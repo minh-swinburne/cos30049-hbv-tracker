@@ -13,7 +13,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { IconButton, Tooltip } from "@mui/material";
 import { FC } from "react";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import type {
   GraphHealthcareProvider,
   GraphNode,
@@ -28,6 +28,8 @@ interface EntityInfoProps {
 
 const EntityInfo: FC<EntityInfoProps> = ({ entity, onClose }) => {
   if (!entity) return null;
+
+  const blockchainExplorerUrl = import.meta.env.VITE_BLOCKCHAIN_EXPLORER_URL;
 
   const handleClose = () => {
     if (onClose) {
@@ -45,7 +47,6 @@ const EntityInfo: FC<EntityInfoProps> = ({ entity, onClose }) => {
 
   return (
     <div className="p-4 border rounded-lg shadow-md bg-white h-full relative">
-      <ToastContainer position="bottom-right" />
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">{entity.type} Information</h2>
         <IconButton
@@ -106,15 +107,15 @@ const EntityInfo: FC<EntityInfoProps> = ({ entity, onClose }) => {
             </div>
             <div>
               <p className="font-bold text-gray-600 text-lg">Province</p>
-              <p className="">{(entity.data as GraphPatient).reg_province}</p>
+              <p className="">{(entity.data as GraphPatient).regProvince}</p>
             </div>
             <div>
               <p className="font-bold text-gray-600 text-lg">District</p>
-              <p className="">{(entity.data as GraphPatient).reg_district}</p>
+              <p className="">{(entity.data as GraphPatient).regDistrict}</p>
             </div>
             <div>
               <p className="font-bold text-gray-600 text-lg">Commune</p>
-              <p className="">{(entity.data as GraphPatient).reg_commune}</p>
+              <p className="">{(entity.data as GraphPatient).regCommune}</p>
             </div>
           </>
         ) : entity.type === "HealthcareProvider" ? (
@@ -178,13 +179,13 @@ const EntityInfo: FC<EntityInfoProps> = ({ entity, onClose }) => {
               <p className="font-bold text-gray-600 text-lg">Data Hash</p>
               <div className="flex items-center gap-2">
                 <p className="font-mono break-all">
-                  {(entity.data as GraphVaccination).data_hash ?? "-"}
+                  {(entity.data as GraphVaccination).dataHash ?? "-"}
                 </p>
-                {(entity.data as GraphVaccination).data_hash && (
+                {(entity.data as GraphVaccination).dataHash && (
                   <Tooltip title="Copy">
                     <IconButton
                       onClick={() =>
-                        handleCopy((entity.data as GraphVaccination).data_hash!)
+                        handleCopy((entity.data as GraphVaccination).dataHash!)
                       }
                       size="small"
                     >
@@ -199,14 +200,25 @@ const EntityInfo: FC<EntityInfoProps> = ({ entity, onClose }) => {
                 Transaction Hash
               </p>
               <div className="flex items-center gap-2">
-                <p className="font-mono break-all">
-                  {(entity.data as GraphVaccination).tx_hash ?? "-"}
-                </p>
-                {(entity.data as GraphVaccination).tx_hash && (
+                {(entity.data as GraphVaccination).txHash ? (
+                  <a
+                    href={`${blockchainExplorerUrl}/tx/${
+                      (entity.data as GraphVaccination).txHash
+                    }`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 underline break-all font-mono"
+                  >
+                    {(entity.data as GraphVaccination).txHash}
+                  </a>
+                ) : (
+                  <p className="font-mono break-all">-</p>
+                )}
+                {(entity.data as GraphVaccination).txHash && (
                   <Tooltip title="Copy">
                     <IconButton
                       onClick={() =>
-                        handleCopy((entity.data as GraphVaccination).tx_hash!)
+                        handleCopy((entity.data as GraphVaccination).txHash!)
                       }
                       size="small"
                     >

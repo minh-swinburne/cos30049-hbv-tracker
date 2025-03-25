@@ -15,6 +15,6 @@ export interface VaccinationRecord {
   vactype: string;
   vacdate: Date;
   vacplace: string;
-  data_hash?: string;
-  tx_hash?: string;
+  dataHash?: string;
+  txHash?: string;
 }

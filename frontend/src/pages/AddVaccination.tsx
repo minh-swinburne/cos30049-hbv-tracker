@@ -42,6 +42,7 @@ const AddVaccination: React.FC = () => {
 
   useEffect(() => {
     if (!isConnected || !account) {
+      console.log(isConnected, account);
       navigate("/wallet");
     }
   }, [isConnected, account, navigate]);
@@ -76,8 +77,8 @@ const AddVaccination: React.FC = () => {
           name: state.vaccineName,
           date: new Date(state.vaccinationDate),
           type: state.vaccinationType,
-          data_hash: undefined,
-          tx_hash: undefined,
+          dataHash: undefined,
+          txHash: undefined,
         } as GraphVaccination,
         healthcareProvider: {
           wallet: account,

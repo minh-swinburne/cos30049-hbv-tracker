@@ -10,6 +10,7 @@ Group 3 - COS30049
 */
 
 import { FC, useEffect, useRef, useState } from "react";
+import { toast } from "react-toastify"; // Import toast for error notifications
 import apiClient from "../api";
 import AppHeader from "../components/AppHeader";
 import type { EntityGraphMethods } from "../components/EntityGraph";
@@ -18,13 +19,18 @@ import EntityInfo from "../components/EntityInfo";
 import EntityTable from "../components/EntityTable";
 import SearchBar from "../components/SearchBar";
 import { useStore } from "../store";
-import type { GraphLink, GraphNode, GraphVaccination } from "../types/graph";
+import type {
+  GraphLink,
+  GraphNode,
+  GraphPatient,
+  GraphVaccination,
+} from "../types/graph";
 import type { VaccinationRecord } from "../types/vaccination";
 
 const Home: FC = () => {
   const [selectedEntity, setSelectedEntity] = useState<GraphNode | null>(null);
   const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
-  const { user } = useStore(); // Access the user from the store
+  const { user, userType } = useStore(); // Access the user from the store
   const entityGraphRef = useRef<EntityGraphMethods | null>(null);
 
   useEffect(() => {
@@ -34,13 +40,52 @@ const Home: FC = () => {
   const handleSearch = async (query: string) => {
     entityGraphRef.current?.setIsLoading(true); // Set loading to true
     const graphData = await apiClient.graph.searchNodes(query);
-    if (graphData) {
-      entityGraphRef.current?.setGraphData(graphData);
-      if (graphData.root) {
-        setSelectedEntity(graphData.root);
+    try {
+      if (graphData) {
+        if (userType !== "healthcareProvider") {
+          switch (graphData.root!.type) {
+            case "HealthcareProvider":
+              throw new Error("Unauthorized search");
+
+            case "Vaccination":
+              const vaccinationData = await apiClient.graph.getVaccination(
+                (graphData.root!.data as GraphVaccination).txHash ?? ""
+              );
+              const patientNode = vaccinationData.nodes.find(
+                (node) => node.type === "Patient"
+              );
+              if (
+                !patientNode ||
+                (patientNode.data as GraphPatient).wallet !== user?.sub
+              ) {
+                throw new Error("Unauthorized search");
+              }
+              break;
+
+            case "Patient":
+              const patient = await apiClient.graph.getPatient(
+                (graphData.root!.data as GraphPatient).pid
+              );
+              if (patient.wallet !== user?.sub) {
+                throw new Error("Unauthorized search");
+              }
+              break;
+
+            default:
+              break;
+          }
+        }
+        entityGraphRef.current?.setGraphData(graphData);
+        setSelectedEntity(graphData.root!);
       }
+    } catch (error) {
+      console.error("Error searching nodes:", error);
+      toast.error("You are not authorized to perform this search.");
+      entityGraphRef.current?.setGraphData({ nodes: [], links: [] }); // Clear graph data
+      setSelectedEntity(null); // Reset selected entity
+    } finally {
+      entityGraphRef.current?.setIsLoading(false);
     }
-    entityGraphRef.current?.setIsLoading(false); // Set loading to false
   };
 
   const handleNodeClick = (node: GraphNode): void => {
@@ -66,8 +111,8 @@ const Home: FC = () => {
       vacplace:
         links.find((link) => link.source === `${v.pid}_${v.name}_${v.date}`)
           ?.target || "",
-      data_hash: v.data_hash,
-      tx_hash: v.tx_hash,
+      dataHash: v.dataHash,
+      txHash: v.txHash,
     }));
     setVaccinations(mappedVaccinations);
   };

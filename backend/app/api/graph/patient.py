@@ -8,21 +8,15 @@ from app.schemas import AuthDetails, GraphData, GraphPatient
 router = APIRouter(prefix="/patient")
 
 
-@router.get("/{address}")
+@router.get("/{pid}")
 async def read_patient(
-    address: str = Path(..., title="Patient's Wallet Address"),
+    pid: str = Path(..., title="Patient ID"),
     driver: AsyncDriver = Depends(get_driver),
     payload: AuthDetails = Depends(secure_endpoint),
 ) -> GraphPatient:
     """Fetch a patient node from the graph database."""
-    if payload.sub != address:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized access: address mismatch",
-        )
-
     cypher_query = f"""
-        MATCH (p:Patient {{wallet: '{address}'}})
+        MATCH (p:Patient {{pid: '{pid}'}})
         RETURN p
     """
 
@@ -35,7 +29,16 @@ async def read_patient(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Patient not found in the graph database",
             )
-        return GraphPatient.model_validate(data[0].get("p"))
+
+        patient = GraphPatient.model_validate(data[0].get("p"))
+
+        if payload.sub != patient.wallet:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Unauthorized access: address mismatch. Expected: {patient.wallet}, Got: {payload.sub}",
+            )
+
+        return patient.model_dump(by_alias=True)
 
 
 @router.get("/{address}/records")
@@ -91,4 +94,5 @@ async def create_patient(
     async with driver.session() as session:
         result = await session.run(cypher_query)
         data = await result.data()
-        return GraphPatient.model_validate(data[0].get("p"))
+
+        return GraphPatient.model_validate(data[0].get("p")).model_dump(by_alias=True)

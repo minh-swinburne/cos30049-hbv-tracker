@@ -41,7 +41,7 @@ def map_node(node: dict) -> GraphNode:
         data = GraphHealthcareProvider.model_validate(node)
     else:
         raise ValueError("Invalid node type:", node)
-    return GraphNode(id=id, type=type, data=data)
+    return GraphNode(id=id, type=type, data=data.model_dump(by_alias=True))
 
 
 def extract_graph_data(data: list[dict[str]]) -> GraphData:
@@ -74,16 +74,18 @@ def extract_graph_data(data: list[dict[str]]) -> GraphData:
         )
 
         for node in [
-            GraphNode(id=patient_id, type="Patient", data=patient),
+            GraphNode(
+                id=patient_id, type="Patient", data=patient.model_dump(by_alias=True)
+            ),
             GraphNode(
                 id=vaccination_id,
                 type="Vaccination",
-                data=vaccination,
+                data=vaccination.model_dump(by_alias=True),
             ),
             GraphNode(
                 id=healthcare_provider_id,
                 type="HealthcareProvider",
-                data=healthcare_provider,
+                data=healthcare_provider.model_dump(by_alias=True),
             ),
         ]:
             if node.id not in unique_ids:

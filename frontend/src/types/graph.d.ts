@@ -4,9 +4,9 @@ export interface GraphPatient {
   sex: string;
   dob: Date;
   ethnic: string;
-  reg_province: string;
-  reg_district: string;
-  reg_commune: string;
+  regProvince: string;
+  regDistrict: string;
+  regCommune: string;
 }
 
 export interface GraphHealthcareProvider {
@@ -20,8 +20,8 @@ export interface GraphVaccination {
   name: string;
   date: Date;
   type: string;
-  data_hash?: string;
-  tx_hash?: string;
+  dataHash?: string;
+  txHash?: string;
 }
 
 export interface GraphNode {

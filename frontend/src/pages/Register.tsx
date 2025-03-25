@@ -25,9 +25,9 @@ interface RegistrationFormData {
   sex: string;
   dob: string;
   ethnic: string;
-  reg_province: string;
-  reg_district: string;
-  reg_commune: string;
+  regProvince: string;
+  regDistrict: string;
+  regCommune: string;
   providerType: string;
 }
 
@@ -54,9 +54,9 @@ const Register: FC = () => {
     sex: "",
     dob: "",
     ethnic: "",
-    reg_province: "",
-    reg_district: "",
-    reg_commune: "",
+    regProvince: "",
+    regDistrict: "",
+    regCommune: "",
     providerType: "Healthcare",
   });
 
@@ -99,9 +99,9 @@ const Register: FC = () => {
           sex: formData.sex,
           dob: new Date(formData.dob),
           ethnic: formData.ethnic,
-          reg_province: formData.reg_province,
-          reg_district: formData.reg_district,
-          reg_commune: formData.reg_commune,
+          regProvince: formData.regProvince,
+          regDistrict: formData.regDistrict,
+          regCommune: formData.regCommune,
         });
       } else {
         // Register as healthcare provider
@@ -191,7 +191,10 @@ const Register: FC = () => {
               {type === "patient" ? (
                 <>
                   <div>
-                    <label htmlFor="sex" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="sex"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Sex
                     </label>
                     <select
@@ -210,7 +213,10 @@ const Register: FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="dob" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="dob"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Date of Birth
                     </label>
                     <input
@@ -225,7 +231,10 @@ const Register: FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="ethnic" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="ethnic"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Ethnic Group
                     </label>
                     <input
@@ -240,14 +249,17 @@ const Register: FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="reg_province" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="regProvince"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Province
                     </label>
                     <input
                       type="text"
-                      id="reg_province"
-                      name="reg_province"
-                      value={formData.reg_province}
+                      id="regProvince"
+                      name="regProvince"
+                      value={formData.regProvince}
                       onChange={handleInputChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       required
@@ -255,14 +267,17 @@ const Register: FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="reg_district" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="regDistrict"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       District
                     </label>
                     <input
                       type="text"
-                      id="reg_district"
-                      name="reg_district"
-                      value={formData.reg_district}
+                      id="regDistrict"
+                      name="regDistrict"
+                      value={formData.regDistrict}
                       onChange={handleInputChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       required
@@ -270,14 +285,17 @@ const Register: FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="reg_commune" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="regCommune"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Commune
                     </label>
                     <input
                       type="text"
-                      id="reg_commune"
-                      name="reg_commune"
-                      value={formData.reg_commune}
+                      id="regCommune"
+                      name="regCommune"
+                      value={formData.regCommune}
                       onChange={handleInputChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       required
@@ -287,7 +305,10 @@ const Register: FC = () => {
               ) : (
                 <>
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="name"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Provider Name
                     </label>
                     <input
@@ -302,7 +323,10 @@ const Register: FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="providerType" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="providerType"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Provider Type
                     </label>
                     <select

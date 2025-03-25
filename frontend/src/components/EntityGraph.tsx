@@ -129,6 +129,7 @@ const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
           clearTimeout(clickTimeout);
           clickTimeout = null;
           handleNodeDoubleClick(node); // Trigger double-click
+          onNodeClick(node); // Trigger single-click as well, can be removed if not needed
         } else {
           clickTimeout = setTimeout(() => {
             clickTimeout = null;
@@ -177,6 +178,10 @@ const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
           <div className="flex items-center justify-center h-full text-gray-500">
             Please log in to view the graph.
           </div>
+        ) : graphData.nodes.length === 0 && !isLoading ? ( // Show unauthorized message
+          <div className="flex items-center justify-center h-full text-gray-500">
+            You are not authorized to view this graph.
+          </div>
         ) : isLoading ? ( // Show spinner while loading
           <div className="flex items-center justify-center h-full text-gray-500">
             <div className="flex flex-col items-center">
@@ -211,7 +216,7 @@ const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
             }}
             nodeCanvasObject={(node: GraphNode, ctx) => {
               // Draw a slightly larger node
-              ctx.arc(node.x!, node.y!, 3, 0, 2 * Math.PI, false); // Increase radius to 3
+              ctx.arc(node.x!, node.y!, 5, 0, 2 * Math.PI, false); // Increase radius to 3
             }}
             nodeCanvasObjectMode={() => "after"}
             linkLabel={(link: GraphLink) => link.type}

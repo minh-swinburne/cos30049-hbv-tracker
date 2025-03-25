@@ -19,9 +19,7 @@ interface EntityTableProps {
 const EntityTable: FC<EntityTableProps> = ({ records }) => {
   if (!records || records.length === 0) {
     return (
-      <div className="text-center p-4 text-slate-500">
-        No data available.
-      </div>
+      <div className="text-center p-4 text-slate-500">No data available.</div>
     );
   }
 
@@ -30,25 +28,25 @@ const EntityTable: FC<EntityTableProps> = ({ records }) => {
       <table className="min-w-full divide-y divide-slate-200">
         <thead className="bg-slate-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[150px]">
               PID
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[150px]">
               Vaccine Name
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[150px]">
               Vaccine Type
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[150px]">
               Vaccine Date
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[150px]">
               Vaccine Place
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[150px]">
               Data Hash
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[150px]">
               Transaction Hash
             </th>
           </tr>
@@ -75,13 +73,13 @@ const EntityTable: FC<EntityTableProps> = ({ records }) => {
                   : "-"}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                {record.vacplace || "-"}
+                {record.vacplace.split("_")[1] || "-"}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                {record.data_hash || "-"}
+                {record.dataHash || "-"}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                {record.tx_hash || "-"}
+                {record.txHash || "-"}
               </td>
             </tr>
           ))}

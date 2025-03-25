@@ -1,10 +1,13 @@
 from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 from datetime import date
 from typing import Optional, Union
 
 
 class GraphPatient(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
 
     pid: str
     wallet: Optional[str] = None
@@ -17,7 +20,9 @@ class GraphPatient(BaseModel):
 
 
 class GraphHealthcareProvider(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
 
     wallet: Optional[str] = None
     name: str
@@ -25,7 +30,9 @@ class GraphHealthcareProvider(BaseModel):
 
 
 class GraphVaccination(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
 
     pid: str
     name: str
@@ -36,7 +43,9 @@ class GraphVaccination(BaseModel):
 
 
 class GraphNode(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
 
     id: str
     type: str
@@ -44,13 +53,19 @@ class GraphNode(BaseModel):
 
 
 class GraphLink(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
+    
     source: str
     target: str
     type: str
 
 
 class GraphData(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
 
     nodes: list[GraphNode]
     links: list[GraphLink]
