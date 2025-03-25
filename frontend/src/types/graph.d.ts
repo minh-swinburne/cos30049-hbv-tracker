@@ -28,6 +28,8 @@ export interface GraphNode {
   id: string;
   type: "Patient" | "HealthcareProvider" | "Vaccination";
   data: GraphPatient | GraphHealthcareProvider | GraphVaccination;
+  x: number;
+  y: number;
 }
 
 export interface GraphLink {
@@ -39,4 +41,5 @@ export interface GraphLink {
 export interface GraphData {
   nodes: GraphNode[];
   links: GraphLink[];
+  root?: GraphNode;
 }

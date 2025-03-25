@@ -90,6 +90,7 @@ async def read_node_hop(
         graph = GraphData(
             nodes=[],
             links=[],
+            root=None,
         )
 
         for record in data:
@@ -99,6 +100,7 @@ async def read_node_hop(
 
             node = map_node(node)
             graph.nodes.append(node)
+            graph.root = node
 
             for link in out:
                 target = map_node(link[2])
@@ -126,22 +128,22 @@ async def search_graph_db(
 
     cypher_query = f"""
         CALL () {{
-            MATCH r1=(:Patient {{wallet: '{query}'}})-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider)
-            RETURN r1 AS r
+            MATCH r1=(n:Patient {{wallet: '{query}'}})-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider)
+            RETURN r1 AS r, n
         }}
-        RETURN r
+        RETURN r, n
         UNION
         CALL () {{
-            MATCH r2=(:Patient)-[:RECEIVED]->(:Vaccination {{tx_hash: '{query}'}})-[:ADMINISTERED_BY]->(:HealthcareProvider)
-            RETURN r2 AS r
+            MATCH r2=(:Patient)-[:RECEIVED]->(n:Vaccination {{tx_hash: '{query}'}})-[:ADMINISTERED_BY]->(:HealthcareProvider)
+            RETURN r2 AS r, n
         }}
-        RETURN r
+        RETURN r, n
         UNION
         CALL () {{
-            MATCH r3=(:Patient)-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider {{wallet: '{query}'}})
-            RETURN r3 AS r
+            MATCH r3=(:Patient)-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(n:HealthcareProvider {{wallet: '{query}'}})
+            RETURN r3 AS r, n
         }}
-        RETURN r
+        RETURN r, n
     """
 
     async with driver.session() as session:
