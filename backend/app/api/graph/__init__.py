@@ -5,7 +5,9 @@ from app.schemas import AuthDetails, GraphData, GraphLink
 from . import patient
 from . import provider
 from . import vaccination
+from app.core.logging import setup_logging
 
+logger = setup_logging()
 
 router = APIRouter(prefix="/graph", tags=["Neo4j Graph Database"])
 router.include_router(patient.router)
@@ -125,28 +127,31 @@ async def search_graph_db(
     payload: AuthDetails = Depends(secure_endpoint),
 ) -> GraphData:
     """Search the graph database for nodes matching the given query."""
-
-    cypher_query = f"""
-        CALL () {{
-            MATCH r1=(n:Patient {{wallet: '{query}'}})-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider)
-            RETURN r1 AS r, n
-        }}
-        RETURN r, n
-        UNION
-        CALL () {{
-            MATCH r2=(:Patient)-[:RECEIVED]->(n:Vaccination {{tx_hash: '{query}'}})-[:ADMINISTERED_BY]->(:HealthcareProvider)
-            RETURN r2 AS r, n
-        }}
-        RETURN r, n
-        UNION
-        CALL () {{
-            MATCH r3=(:Patient)-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(n:HealthcareProvider {{wallet: '{query}'}})
-            RETURN r3 AS r, n
-        }}
-        RETURN r, n
-    """
-
-    async with driver.session() as session:
-        result = await session.run(cypher_query)
-        data = await result.data()
-        return extract_graph_data(data)
+    try:
+        cypher_query = f"""
+            CALL {{
+                MATCH r1=(n:Patient {{wallet: '{query}'}})-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider)
+                RETURN r1 AS r, n
+            }}
+            UNION ALL
+            CALL {{
+                MATCH r2=(:Patient)-[:RECEIVED]->(n:Vaccination {{tx_hash: '{query}'}})-[:ADMINISTERED_BY]->(:HealthcareProvider)
+                RETURN r2 AS r, n
+            }}
+            UNION ALL
+            CALL {{
+                MATCH r3=(:Patient)-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(n:HealthcareProvider {{wallet: '{query}'}})
+                RETURN r3 AS r, n
+            }}
+        """
+        async with driver.session() as session:
+            result = await session.run(cypher_query)
+            data = await result.data()
+            logger.info(f"Search query executed successfully for query: {query}")
+            return extract_graph_data(data)
+    except Exception as e:
+        logger.error(f"Error occurred while executing search query: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while searching the graph database.",
+        )

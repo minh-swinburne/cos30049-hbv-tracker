@@ -2,7 +2,9 @@ from neo4j import GraphDatabase, AsyncGraphDatabase, AsyncDriver
 from app.core.settings import settings
 from app.schemas.graph import *
 from typing import AsyncGenerator, Any
+from app.core.logging import setup_logging
 
+logger = setup_logging()
 
 URI = settings.neo4j_uri
 USER = settings.neo4j_user
@@ -21,9 +23,12 @@ def setup_graph_db():
             driver.verify_connectivity()
             with driver.session() as session:
                 result = session.run("MATCH (n) RETURN count(n)")
-                print("✅ Connected to Neo4j instance. Node count:", result.single()[0])
+                logger.info(
+                    f"Connected to Neo4j instance. Node count: {result.single()[0]}"
+                )
     except Exception as e:
-        print("❌ Failed to connect to Neo4j:", e)
+        logger.error(f"Failed to connect to Neo4j: {e}", exc_info=True)
+        raise
 
 
 def map_node(node: dict) -> GraphNode:
@@ -50,11 +55,7 @@ def extract_graph_data(data: list[dict[str]]) -> GraphData:
 
     If `n` is included in the cypher query and the result, it will be treated as the root node.
     """
-    graph_data = GraphData(
-        nodes=[],
-        links=[],
-        root=None
-    )
+    graph_data = GraphData(nodes=[], links=[], root=None)
     unique_ids = set()
 
     for record in data:
