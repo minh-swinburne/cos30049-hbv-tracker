@@ -5,9 +5,12 @@
  * @date 2024-03-20
  */
 
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { IconButton, Tooltip } from "@mui/material";
 import { FC, useEffect, useState } from "react";
 import { MetaMaskAvatar } from "react-metamask-avatar";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { useMetaMask } from "../hooks/useMetaMask";
 import { useStore } from "../store";
 import MetaMaskIcon from "/metamask-icon.svg";
@@ -77,6 +80,14 @@ const Login: FC = () => {
     localStorage.setItem("wallet-name", newWalletName);
     setWalletName(newWalletName);
     setEditingName(false);
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard!", {
+      position: "bottom-right",
+      autoClose: 2000,
+    });
   };
 
   const formatUserType = (type: string | null) => {
@@ -176,7 +187,19 @@ const Login: FC = () => {
                   <p className="font-bold text-gray-600 text-lg">
                     Wallet Address
                   </p>
-                  <p className="font-mono break-all">{account}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono break-all">{account}</p>
+                    {account && (
+                      <Tooltip title="Copy">
+                        <IconButton
+                          onClick={() => handleCopy(account)}
+                          size="small"
+                        >
+                          <ContentCopyIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <p className="font-bold text-gray-600 text-lg">Balance</p>
