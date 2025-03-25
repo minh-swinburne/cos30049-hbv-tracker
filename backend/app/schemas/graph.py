@@ -54,3 +54,4 @@ class GraphData(BaseModel):
 
     nodes: list[GraphNode]
     links: list[GraphLink]
+    root: Optional[GraphNode]

@@ -9,6 +9,7 @@ Authors:
 Group 3 - COS30049
 */
 
+import { Minus, Plus } from "lucide-react";
 import {
   forwardRef,
   useEffect,
@@ -19,19 +20,31 @@ import {
 import ForceGraph2D, { ForceGraphMethods } from "react-force-graph-2d";
 import apiClient from "../api";
 import { useStore } from "../store";
-import type { GraphData, GraphLink, GraphNode } from "../types/graph";
+import type {
+  GraphData,
+  GraphHealthcareProvider,
+  GraphLink,
+  GraphNode,
+  GraphPatient,
+  GraphVaccination,
+} from "../types/graph";
 
 interface EntityGraphProps {
   onNodeClick: (node: GraphNode) => void;
+  onGraphDataUpdate: (
+    vaccinations: GraphVaccination[],
+    links: GraphLink[]
+  ) => void; // New prop
 }
 
 export interface EntityGraphMethods {
   fetchGraphData: () => void;
   setGraphData: (data: GraphData) => void;
+  setIsLoading: (loading: boolean) => void;
 }
 
 const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
-  ({ onNodeClick }, ref) => {
+  ({ onNodeClick, onGraphDataUpdate }, ref) => {
     const [graphData, setGraphData] = useState<GraphData>({
       nodes: [],
       links: [],
@@ -57,7 +70,7 @@ const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
           undefined,
           user.sub
         );
-        setGraphData(data);
+        setGraphDataWithFilter(data);
       } catch (error) {
         console.error("Error fetching graph data:", error);
       } finally {
@@ -65,9 +78,28 @@ const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
       }
     };
 
+    const setGraphDataWithFilter = (data: GraphData) => {
+      setGraphData(data);
+
+      // Filter vaccination nodes and their associated links
+      const vaccinationNodes = data.nodes.filter(
+        (node) => node.type === "Vaccination"
+      ) as GraphNode[];
+      const vaccinationLinks = data.links.filter((link) =>
+        vaccinationNodes.some((node) => node.id === link.source)
+      );
+
+      // Send filtered data to parent
+      onGraphDataUpdate(
+        vaccinationNodes.map((node) => node.data as GraphVaccination),
+        vaccinationLinks
+      );
+    };
+
     useImperativeHandle(ref, () => ({
       fetchGraphData,
-      setGraphData,
+      setGraphData: setGraphDataWithFilter, // Use the new filtered method
+      setIsLoading,
     }));
 
     useEffect(() => {
@@ -99,7 +131,7 @@ const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
           node.type,
           undefined
         );
-        setGraphData(data);
+        setGraphDataWithFilter(data);
       } catch (error) {
         console.error("Error fetching graph data:", error);
       } finally {
@@ -124,7 +156,7 @@ const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
     return (
       <div
         ref={graphContainerRef}
-        className="relative h-[600px] border border-gray-300 rounded-lg"
+        className="relative h-[600px] w-full overflow-hidden rounded-lg"
       >
         {!user ? (
           <div className="flex items-center justify-center h-full text-gray-500">
@@ -141,7 +173,15 @@ const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
           <ForceGraph2D
             ref={graphRef}
             graphData={graphData}
-            nodeLabel={(node: GraphNode) => `${node.id}\n(${node.type})`}
+            nodeLabel={(node: GraphNode) =>
+              `${node.type}<br/>(${
+                node.type === "Patient"
+                  ? (node.data as GraphPatient).pid
+                  : node.type === "Vaccination"
+                  ? (node.data as GraphVaccination).name
+                  : (node.data as GraphHealthcareProvider).name
+              })`
+            }
             nodeColor={(node: GraphNode) => {
               switch (node.type) {
                 case "Patient":
@@ -154,7 +194,14 @@ const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
                   return "#a0aec0"; // Gray for unknown types
               }
             }}
-            linkLabel={(link: GraphLink) => `Value: ${link.type}`}
+            nodeCanvasObject={(node: GraphNode, ctx) => {
+              // Draw a slightly larger node
+              ctx.arc(node.x!, node.y!, 3, 0, 2 * Math.PI, false); // Increase radius to 3
+            }}
+            nodeCanvasObjectMode={() => "after"}
+            linkLabel={(link: GraphLink) => link.type}
+            linkDirectionalArrowLength={3}
+            // linkDirectionalArrowRelPos={1}
             onNodeClick={(node: GraphNode) => handleNodeClick(node)}
             width={dimensions.width}
             height={dimensions.height}
@@ -162,23 +209,27 @@ const EntityGraph = forwardRef<EntityGraphMethods, EntityGraphProps>(
         )}
 
         {/* Zoom Controls */}
-        <div className="absolute bottom-2 left-2 flex flex-col gap-2 bg-white p-2 rounded-lg shadow">
+        <div className="absolute bottom-0 left-0 flex flex-col gap-2 text-blue-900 bg-white rounded-lg">
           <button
             onClick={zoomIn}
-            className="p-2 bg-sky-100 hover:bg-sky-200 cursor-pointer text-white rounded"
+            className="p-2 bg-gray-100 hover:bg-gray-200 cursor-pointer rounded"
+            title="Zoom In"
+            aria-label="Zoom In"
           >
-            ➕
+            <Plus />
           </button>
           <button
             onClick={zoomOut}
-            className="p-2 bg-sky-100 hover:bg-sky-200 cursor-pointer text-white rounded"
+            className="p-2 bg-gray-100 hover:bg-gray-200 cursor-pointer rounded"
+            title="Zoom Out"
+            aria-label="Zoom Out"
           >
-            ➖
+            <Minus />
           </button>
         </div>
 
         {/* Legend */}
-        <div className="absolute top-2 left-2 bg-white p-2 rounded-lg shadow">
+        <div className="absolute top-0 left-0 bg-white p-2 rounded-lg border">
           <p className="text-sm font-bold">Legend</p>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-blue-500 rounded-full"></div>

@@ -47,14 +47,21 @@ def map_node(node: dict) -> GraphNode:
 def extract_graph_data(data: list[dict[str]]) -> GraphData:
     """Extract graph data from a list of records. The input needs to be the result from this Cypher query:
     MATCH r=(:Patient)-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider)
+
+    If `n` is included in the cypher query and the result, it will be treated as the root node.
     """
     graph_data = GraphData(
         nodes=[],
         links=[],
+        root=None
     )
     unique_ids = set()
 
     for record in data:
+        root: dict = record.get("n")
+        if root is not None:
+            graph_data.root = map_node(root)
+
         chain: list = record.get("r")
         patient = GraphPatient.model_validate(chain[0])
         vaccination = GraphVaccination.model_validate(chain[2])

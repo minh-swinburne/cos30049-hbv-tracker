@@ -10,8 +10,10 @@ Group 3 - COS30049
 */
 
 import CloseIcon from "@mui/icons-material/Close";
-import { IconButton } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { IconButton, Tooltip } from "@mui/material";
 import { FC } from "react";
+import { ToastContainer, toast } from "react-toastify";
 import type {
   GraphHealthcareProvider,
   GraphNode,
@@ -33,40 +35,61 @@ const EntityInfo: FC<EntityInfoProps> = ({ entity, onClose }) => {
     }
   };
 
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard!", {
+      position: "top-right",
+      autoClose: 2000,
+    });
+  };
+
   return (
-    <div className="p-6 border rounded-lg shadow-md bg-white mb-6 relative">
-      <div className="flex items-start justify-between mb-4">
-        <h2 className="text-2xl font-bold mb-0">{entity.type} Information</h2>
+    <div className="p-4 border rounded-lg shadow-md bg-white h-full relative">
+      <ToastContainer />
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold">{entity.type} Information</h2>
         <IconButton
-          className="absolute top-0 right-0"
           onClick={handleClose}
           aria-label="close"
+          className="text-gray-500 hover:text-gray-700"
         >
           <CloseIcon />
         </IconButton>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {entity.type === "Patient" ? (
           <>
             <div>
-              <p className="text-gray-600">PID</p>
-              <p className="font-bold text-lg">
-                {(entity.data as GraphPatient).pid}
-              </p>
+              <p className="font-bold text-gray-600 text-lg">PID</p>
+              <p className="">{(entity.data as GraphPatient).pid}</p>
             </div>
             <div>
-              <p className="text-gray-600">Wallet</p>
-              <p className="font-mono text-lg">
-                {(entity.data as GraphPatient).wallet ?? "-"}
-              </p>
+              <p className="font-bold text-gray-600 text-lg">Wallet</p>
+              <div className="flex items-center gap-2">
+                <p className="font-mono break-all">
+                  {(entity.data as GraphPatient).wallet ?? "-"}
+                </p>
+                {(entity.data as GraphPatient).wallet && (
+                  <Tooltip title="Copy">
+                    <IconButton
+                      onClick={() =>
+                        handleCopy((entity.data as GraphPatient).wallet!)
+                      }
+                      size="small"
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </div>
             </div>
             <div>
-              <p className="text-gray-600">Sex</p>
-              <p className="text-lg">{(entity.data as GraphPatient).sex}</p>
+              <p className="font-bold text-gray-600 text-lg">Sex</p>
+              <p className="">{(entity.data as GraphPatient).sex}</p>
             </div>
             <div>
-              <p className="text-gray-600">Date of Birth</p>
-              <p className="text-lg">
+              <p className="font-bold text-gray-600 text-lg">Date of Birth</p>
+              <p className="">
                 {new Date((entity.data as GraphPatient).dob).toLocaleDateString(
                   "en-US",
                   {
@@ -78,86 +101,120 @@ const EntityInfo: FC<EntityInfoProps> = ({ entity, onClose }) => {
               </p>
             </div>
             <div>
-              <p className="text-gray-600">Ethnic</p>
-              <p className="text-lg">{(entity.data as GraphPatient).ethnic}</p>
+              <p className="font-bold text-gray-600 text-lg">Ethnic</p>
+              <p className="">{(entity.data as GraphPatient).ethnic}</p>
             </div>
             <div>
-              <p className="text-gray-600">Province</p>
-              <p className="text-lg">
-                {(entity.data as GraphPatient).reg_province}
-              </p>
+              <p className="font-bold text-gray-600 text-lg">Province</p>
+              <p className="">{(entity.data as GraphPatient).reg_province}</p>
             </div>
             <div>
-              <p className="text-gray-600">District</p>
-              <p className="text-lg">
-                {(entity.data as GraphPatient).reg_district}
-              </p>
+              <p className="font-bold text-gray-600 text-lg">District</p>
+              <p className="">{(entity.data as GraphPatient).reg_district}</p>
             </div>
             <div>
-              <p className="text-gray-600">Commune</p>
-              <p className="text-lg">
-                {(entity.data as GraphPatient).reg_commune}
-              </p>
+              <p className="font-bold text-gray-600 text-lg">Commune</p>
+              <p className="">{(entity.data as GraphPatient).reg_commune}</p>
             </div>
           </>
         ) : entity.type === "HealthcareProvider" ? (
           <>
             <div>
-              <p className="text-gray-600">Name</p>
-              <p className="font-bold text-lg">
+              <p className="font-bold text-gray-600 text-lg">Name</p>
+              <p className="">
                 {(entity.data as GraphHealthcareProvider).name}
               </p>
             </div>
             <div>
-              <p className="text-gray-600">Type</p>
-              <p className="text-lg">
+              <p className="font-bold text-gray-600 text-lg">Type</p>
+              <p className="">
                 {(entity.data as GraphHealthcareProvider).type}
               </p>
             </div>
             <div>
-              <p className="text-gray-600">Wallet</p>
-              <p className="font-mono text-lg">
-                {(entity.data as GraphHealthcareProvider).wallet ?? "-"}
-              </p>
+              <p className="font-bold text-gray-600 text-lg">Wallet</p>
+              <div className="flex items-center gap-2">
+                <p className="font-mono break-all">
+                  {(entity.data as GraphHealthcareProvider).wallet ?? "-"}
+                </p>
+                {(entity.data as GraphHealthcareProvider).wallet && (
+                  <Tooltip title="Copy">
+                    <IconButton
+                      onClick={() =>
+                        handleCopy(
+                          (entity.data as GraphHealthcareProvider).wallet!
+                        )
+                      }
+                      size="small"
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </div>
             </div>
           </>
         ) : (
           <>
             <div>
-              <p className="text-gray-600">PID</p>
-              <p className="font-mono text-lg">
-                {(entity.data as GraphVaccination).pid}
-              </p>
+              <p className="font-bold text-gray-600 text-lg">PID</p>
+              <p className="">{(entity.data as GraphVaccination).pid}</p>
             </div>
             <div>
-              <p className="text-gray-600">Name</p>
-              <p className="font-bold text-lg">
-                {(entity.data as GraphVaccination).name}
-              </p>
+              <p className="font-bold text-gray-600 text-lg">Name</p>
+              <p className="">{(entity.data as GraphVaccination).name}</p>
             </div>
             <div>
-              <p className="text-gray-600">Date</p>
-              <p className="text-lg">
+              <p className="font-bold text-gray-600 text-lg">Date</p>
+              <p className="">
                 {new Date((entity.data as GraphVaccination).date).toISOString()}
               </p>
             </div>
             <div>
-              <p className="text-gray-600">Type</p>
-              <p className="text-lg">
-                {(entity.data as GraphVaccination).type}
-              </p>
+              <p className="font-bold text-gray-600 text-lg">Type</p>
+              <p className="">{(entity.data as GraphVaccination).type}</p>
             </div>
             <div>
-              <p className="text-gray-600">Data Hash</p>
-              <p className="font-mono text-lg">
-                {(entity.data as GraphVaccination).data_hash ?? "-"}
-              </p>
+              <p className="font-bold text-gray-600 text-lg">Data Hash</p>
+              <div className="flex items-center gap-2">
+                <p className="font-mono break-all">
+                  {(entity.data as GraphVaccination).data_hash ?? "-"}
+                </p>
+                {(entity.data as GraphVaccination).data_hash && (
+                  <Tooltip title="Copy">
+                    <IconButton
+                      onClick={() =>
+                        handleCopy((entity.data as GraphVaccination).data_hash!)
+                      }
+                      size="small"
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </div>
             </div>
             <div>
-              <p className="text-gray-600">Transaction Hash</p>
-              <p className="font-mono text-lg">
-                {(entity.data as GraphVaccination).tx_hash ?? "-"}
+              <p className="font-bold text-gray-600 text-lg">
+                Transaction Hash
               </p>
+              <div className="flex items-center gap-2">
+                <p className="font-mono break-all">
+                  {(entity.data as GraphVaccination).tx_hash ?? "-"}
+                </p>
+                {(entity.data as GraphVaccination).tx_hash && (
+                  <Tooltip title="Copy">
+                    <IconButton
+                      onClick={() =>
+                        handleCopy((entity.data as GraphVaccination).tx_hash!)
+                      }
+                      size="small"
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </div>
             </div>
           </>
         )}

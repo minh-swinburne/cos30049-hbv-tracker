@@ -52,8 +52,8 @@ async def read_provider_vaccinations(
         )
 
     cypher_query = f"""
-        MATCH r=(:Patient)-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider {{wallet: '{address}'}})
-        RETURN r
+        MATCH r=(:Patient)-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(n:HealthcareProvider {{wallet: '{address}'}})
+        RETURN r, n
     """
 
     async with driver.session() as session:
