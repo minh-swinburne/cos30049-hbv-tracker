@@ -10,20 +10,30 @@ Group 3 - COS30049
 */
 
 import { Logout, Wallet } from "@mui/icons-material";
+import { styled } from "@mui/material/styles";
 import React from "react";
+import { MetaMaskAvatar } from "react-metamask-avatar";
 import { Link, useLocation } from "react-router-dom";
 import { useMetaMask } from "../hooks/useMetaMask";
 
+const StyledAvatarWrapper = styled("div")(({ theme }) => ({
+  border: "2px solid white",
+  borderRadius: "50%",
+  display: "inline-flex", // Use inline-flex to fit the content
+  alignItems: "center", // Center the avatar vertically
+  justifyContent: "center", // Center the avatar horizontally
+}));
+
 const NavigationBar: React.FC = () => {
   const location = useLocation();
-  const { account, userType, disconnect } = useMetaMask();
+  const { account, disconnect } = useMetaMask();
 
   const isActive = (path: string) => {
     return location.pathname === path ? "bg-blue-700" : "";
   };
 
   return (
-    <nav className="bg-blue-600 text-white p-4">
+    <nav className="bg-blue-600 text-white p-3 fixed top-0 w-full z-50">
       <div className="container mx-auto flex flex-wrap items-center justify-between">
         <div className="flex space-x-4">
           <Link
@@ -80,12 +90,11 @@ const NavigationBar: React.FC = () => {
             <>
               <Link
                 to="/wallet"
-                className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
-                  "/wallet"
-                )}`}
+                className="rounded-md text-sm font-medium flex"
               >
-                <Wallet className="mr-2" />
-                Wallet
+                <StyledAvatarWrapper>
+                  <MetaMaskAvatar address={account} size={32} />
+                </StyledAvatarWrapper>
               </Link>
               <button
                 onClick={disconnect}

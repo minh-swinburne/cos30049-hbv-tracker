@@ -86,7 +86,8 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 pt-16">
+        {/* Added pt-16 to account for the height of the fixed navigation bar */}
         <NavigationBar />
         <Routes>
           {/* Public Routes */}

@@ -38,14 +38,14 @@ const EntityInfo: FC<EntityInfoProps> = ({ entity, onClose }) => {
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard!", {
-      position: "top-right",
+      position: "bottom-right",
       autoClose: 2000,
     });
   };
 
   return (
     <div className="p-4 border rounded-lg shadow-md bg-white h-full relative">
-      <ToastContainer />
+      <ToastContainer position="bottom-right" />
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">{entity.type} Information</h2>
         <IconButton
