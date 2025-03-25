@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
+import { useCallback, useEffect, useState } from "react";
 import apiClient from "../api"; // Import the API client
 import { useStore } from "../store"; // Import the global store
 
@@ -7,7 +7,7 @@ interface MetaMaskState {
   isConnected: boolean;
   account: string | null;
   error: string | null;
-  userType: "healthcareProvider" | "researcher" | "generalUser" | null;
+  userType: "healthcareProvider" | "researcher" | "patient" | null;
 }
 
 export const useMetaMask = () => {
@@ -26,7 +26,8 @@ export const useMetaMask = () => {
       if (typeof window.ethereum === "undefined") {
         setState((prev) => ({
           ...prev,
-          error: "MetaMask is not installed. Please install MetaMask to continue.",
+          error:
+            "MetaMask is not installed. Please install MetaMask to continue.",
         }));
         return;
       }
@@ -45,16 +46,19 @@ export const useMetaMask = () => {
         }));
 
         // Check user type if connected
-        const isProvider = await apiClient.blockchain.checkProviderRegistration(account);
-        const isResearcher = await apiClient.blockchain.checkResearcherRegistration(account);
+        const isProvider = await apiClient.blockchain.checkProviderRegistration(
+          account
+        );
+        const isResearcher =
+          await apiClient.blockchain.checkResearcherRegistration(account);
 
-        let userType: "healthcareProvider" | "researcher" | "generalUser";
+        let userType: "healthcareProvider" | "researcher" | "patient";
         if (isProvider.authorized) {
           userType = "healthcareProvider";
         } else if (isResearcher.authorized) {
           userType = "researcher";
         } else {
-          userType = "generalUser";
+          userType = "patient";
         }
 
         setState((prev) => ({
@@ -78,7 +82,8 @@ export const useMetaMask = () => {
       if (typeof window.ethereum === "undefined") {
         setState((prev) => ({
           ...prev,
-          error: "MetaMask is not installed. Please install MetaMask to continue.",
+          error:
+            "MetaMask is not installed. Please install MetaMask to continue.",
         }));
         return;
       }
@@ -106,9 +111,14 @@ export const useMetaMask = () => {
       }
 
       const account = ethers.getAddress(accounts[0]);
-      setState((prev) => ({ ...prev, isConnected: true, account, error: null }));
+      setState((prev) => ({
+        ...prev,
+        isConnected: true,
+        account,
+        error: null,
+      }));
 
-      // Step 1: Sign login message
+      // Step 1: Sign wallet message
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const message = `I am logging into the HBV Tracker on ${new Date().toISOString()}`;
@@ -116,7 +126,11 @@ export const useMetaMask = () => {
 
       // Step 2: Generate JWT token
       try {
-        const token = await apiClient.auth.generateToken(account, message, signature);
+        const token = await apiClient.auth.generateToken(
+          account,
+          message,
+          signature
+        );
         localStorage.setItem("access-token", token.accessToken);
         apiClient.baseClient.setAuthorizationToken(token.accessToken);
         setToken(token.accessToken);
@@ -126,16 +140,19 @@ export const useMetaMask = () => {
       }
 
       // Step 3: Check user roles
-      const isProvider = await apiClient.blockchain.checkProviderRegistration(account);
-      const isResearcher = await apiClient.blockchain.checkResearcherRegistration(account);
+      const isProvider = await apiClient.blockchain.checkProviderRegistration(
+        account
+      );
+      const isResearcher =
+        await apiClient.blockchain.checkResearcherRegistration(account);
 
-      let userType: "healthcareProvider" | "researcher" | "generalUser";
+      let userType: "healthcareProvider" | "researcher" | "patient";
       if (isProvider.authorized) {
         userType = "healthcareProvider";
       } else if (isResearcher.authorized) {
         userType = "researcher";
       } else {
-        userType = "generalUser";
+        userType = "patient";
       }
 
       setState((prev) => ({ ...prev, userType }));
@@ -192,43 +209,11 @@ export const useMetaMask = () => {
 
   useEffect(() => {
     checkConnection();
-
-    const handleAccountsChanged = (accounts: string[]) => {
-      if (accounts.length === 0) {
-        setState({
-          isConnected: false,
-          account: null,
-          error: null,
-          userType: null,
-        });
-        disconnect();
-      } else {
-        setState((prev) => ({
-          ...prev,
-          isConnected: true,
-          account: ethers.getAddress(accounts[0]),
-          error: null,
-        }));
-        checkConnection();
-      }
-    };
-
-    if (window.ethereum) {
-      window.ethereum.on("accountsChanged", handleAccountsChanged);
-    }
-
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeListener(
-          "accountsChanged",
-          handleAccountsChanged
-        );
-      }
-    };
   }, [checkConnection]);
 
   return {
     ...state,
+    checkConnection,
     connectWallet,
     disconnect,
   };

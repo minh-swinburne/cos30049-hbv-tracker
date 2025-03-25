@@ -5,13 +5,13 @@
  * @date 2024-03-20
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMetaMask } from "../hooks/useMetaMask";
-import { graphClient } from "../api/graph";
-import { blockchainClient } from "../api/blockchain";
 import { BaseClient } from "../api/baseClient";
-import type { GraphVaccination, GraphHealthcareProvider } from "../types/graph";
+import { blockchainClient } from "../api/blockchain";
+import { graphClient } from "../api/graph";
+import { useMetaMask } from "../hooks/useMetaMask";
+import type { GraphHealthcareProvider, GraphVaccination } from "../types/graph";
 
 interface AddVaccinationState {
   patientAddress: string;
@@ -42,7 +42,7 @@ const AddVaccination: React.FC = () => {
 
   useEffect(() => {
     if (!isConnected || !account) {
-      navigate("/login");
+      navigate("/wallet");
     }
   }, [isConnected, account, navigate]);
 

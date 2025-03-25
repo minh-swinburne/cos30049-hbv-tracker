@@ -27,6 +27,7 @@ export class BaseClient {
   }
 
   setAuthorizationToken(token: string) {
+    console.log("Setting authorization token");
     this.axiosInstance.defaults.headers.common[
       "Authorization"
     ] = `Bearer ${token}`;

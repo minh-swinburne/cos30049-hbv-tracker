@@ -1,5 +1,5 @@
 /*
-Authors: 
+Authors:
 - Le Luu Phuoc Thinh
 - Nguyen Thi Thanh Minh
 - Nguyen Quy Hung
@@ -9,32 +9,33 @@ Authors:
 Group 3 - COS30049
 */
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
+  Navigate,
+  Route,
   BrowserRouter as Router,
   Routes,
-  Route,
-  Navigate,
 } from "react-router-dom";
+import apiClient from "./api";
 import NavigationBar from "./components/NavigationBar";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import { useMetaMask } from "./hooks/useMetaMask";
+import AddVaccination from "./pages/AddVaccination";
+import AdminDashboard from "./pages/AdminDashboard";
+import ApiDocs from "./pages/ApiDocs";
 import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
+import NewVaccination from "./pages/NewVaccination";
 import PatientProfile from "./pages/PatientProfile";
 import ProviderDashboard from "./pages/ProviderDashboard";
 import VaccinationDetail from "./pages/VaccinationDetail";
 import VerifyVaccination from "./pages/VerifyVaccination";
-import ApiDocs from "./pages/ApiDocs";
-import AdminDashboard from "./pages/AdminDashboard";
-import NewVaccination from "./pages/NewVaccination";
-import AddVaccination from "./pages/AddVaccination";
+import Wallet from "./pages/Wallet";
+import { useStore } from "./store";
 
 // Public routes that don't require authentication
 const publicRoutes = [
   { path: "/", element: <Home /> },
-  { path: "/login", element: <Login /> },
-  { path: "/register", element: <Register /> },
+  { path: "/wallet", element: <Wallet /> },
   { path: "/verify", element: <VerifyVaccination /> },
   { path: "/api-docs", element: <ApiDocs /> },
 ];
@@ -51,6 +52,38 @@ const protectedRoutes = [
 ];
 
 const App: React.FC = () => {
+  const { setToken } = useStore();
+  const { checkConnection } = useMetaMask();
+
+  useEffect(() => {
+    console.log("Verifying access token...");
+    const accessToken = localStorage.getItem("access-token");
+
+    if (accessToken) {
+      apiClient.baseClient.setAuthorizationToken(accessToken);
+      (async () => {
+        try {
+          const isValid = await apiClient.auth.verifyToken();
+          if (!isValid) {
+            localStorage.removeItem("access-token");
+            apiClient.baseClient.clearAuthorizationToken();
+          } else {
+            console.log("Access token verified.");
+            setToken(accessToken);
+            checkConnection();
+          }
+        } catch (error) {
+          console.error("Error verifying token:", error);
+          localStorage.removeItem("access-token");
+          apiClient.baseClient.clearAuthorizationToken();
+        }
+      })();
+    } else {
+      console.log("No access token found.");
+      apiClient.baseClient.clearAuthorizationToken();
+    }
+  }, [setToken, checkConnection]);
+
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">

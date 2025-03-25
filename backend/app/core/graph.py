@@ -52,6 +52,7 @@ def extract_graph_data(data: list[dict[str]]) -> GraphData:
         nodes=[],
         links=[],
     )
+    unique_ids = set()
 
     for record in data:
         chain: list = record.get("r")
@@ -65,21 +66,22 @@ def extract_graph_data(data: list[dict[str]]) -> GraphData:
             f"{healthcare_provider.type}_{healthcare_provider.name}"
         )
 
-        graph_data.nodes.extend(
-            [
-                GraphNode(id=patient_id, type="Patient", data=patient),
-                GraphNode(
-                    id=vaccination_id,
-                    type="Vaccination",
-                    data=vaccination,
-                ),
-                GraphNode(
-                    id=healthcare_provider_id,
-                    type="HealthcareProvider",
-                    data=healthcare_provider,
-                ),
-            ]
-        )
+        for node in [
+            GraphNode(id=patient_id, type="Patient", data=patient),
+            GraphNode(
+                id=vaccination_id,
+                type="Vaccination",
+                data=vaccination,
+            ),
+            GraphNode(
+                id=healthcare_provider_id,
+                type="HealthcareProvider",
+                data=healthcare_provider,
+            ),
+        ]:
+            if node.id not in unique_ids:
+                graph_data.nodes.append(node)
+                unique_ids.add(node.id)
 
         graph_data.links.extend(
             [

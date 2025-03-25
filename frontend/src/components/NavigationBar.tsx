@@ -1,5 +1,5 @@
 /*
-Authors: 
+Authors:
 - Le Luu Phuoc Thinh
 - Nguyen Thi Thanh Minh
 - Nguyen Quy Hung
@@ -9,6 +9,7 @@ Authors:
 Group 3 - COS30049
 */
 
+import { Logout, Wallet } from "@mui/icons-material";
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useMetaMask } from "../hooks/useMetaMask";
@@ -77,39 +78,33 @@ const NavigationBar: React.FC = () => {
         <div className="flex items-center space-x-4">
           {account ? (
             <>
-              <span className="px-3 py-2 text-sm font-medium">
-                {userType === "healthcareProvider"
-                  ? "Provider"
-                  : userType === "researcher"
-                  ? "Researcher"
-                  : "Patient"}
-              </span>
+              <Link
+                to="/wallet"
+                className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
+                  "/wallet"
+                )}`}
+              >
+                <Wallet className="mr-2" />
+                Wallet
+              </Link>
               <button
                 onClick={disconnect}
                 className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
               >
                 Logout
+                <Logout className="ml-2" />
               </button>
             </>
           ) : (
-            <>
-              <Link
-                to="/login"
-                className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
-                  "/login"
-                )}`}
-              >
-                Login
-              </Link>
-              <Link
-                to="/register"
-                className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
-                  "/register"
-                )}`}
-              >
-                Register
-              </Link>
-            </>
+            <Link
+              to="/wallet"
+              className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${isActive(
+                "/wallet"
+              )}`}
+            >
+              <Wallet className="mr-2" />
+              Wallet
+            </Link>
           )}
         </div>
       </div>

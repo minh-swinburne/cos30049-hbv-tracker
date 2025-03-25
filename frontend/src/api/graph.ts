@@ -23,6 +23,8 @@ export const graphClient = (client: BaseClient) => ({
   getNodeHop: (id?: string, type?: string, address?: string) =>
     client.get<GraphData>(`${prefix}/hop?id=${id}&type=${type}&address=${address}`),
 
+  searchNodes: (query: string) => client.get<GraphData>(`${prefix}/search?query=${query}`),
+
   getPatient: (address: string) =>
     client.get<GraphPatient>(`${prefix}/patient/${address}`),
 

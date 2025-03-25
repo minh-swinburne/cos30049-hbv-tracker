@@ -54,7 +54,7 @@ const ProviderDashboard: FC = () => {
 
   useEffect(() => {
     if (!isConnected || !account) {
-      navigate("/login");
+      navigate("/wallet");
       return;
     }
 

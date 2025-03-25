@@ -56,7 +56,11 @@ async def read_node_hop(
         condition = ":Patient {pid: '%s'}" % id
     elif type == "Vaccination":
         pid, name, date = id.split("_")
-        condition = ":Vaccination {pid: '%s', name: '%s', date: '%s'}" % (pid, name, date)
+        condition = ":Vaccination {pid: '%s', name: '%s', date: '%s'}" % (
+            pid,
+            name,
+            date,
+        )
     elif type == "HealthcareProvider":
         type, name = id.split("_")
         condition = ":HealthcareProvider {type: '%s', name: '%s'}" % (type, name)
@@ -99,10 +103,48 @@ async def read_node_hop(
             for link in out:
                 target = map_node(link[2])
                 graph.nodes.append(target)
-                graph.links.append(GraphLink(source=node.id, target=target.id, type=link[1]))
+                graph.links.append(
+                    GraphLink(source=node.id, target=target.id, type=link[1])
+                )
             for link in in_:
                 source = map_node(link[0])
                 graph.nodes.append(source)
-                graph.links.append(GraphLink(source=source.id, target=node.id, type=link[1]))
+                graph.links.append(
+                    GraphLink(source=source.id, target=node.id, type=link[1])
+                )
 
         return graph
+
+
+@router.get("/search")
+async def search_graph_db(
+    query: str = Query(...),
+    driver: AsyncDriver = Depends(get_driver),
+    payload: AuthDetails = Depends(secure_endpoint),
+) -> GraphData:
+    """Search the graph database for nodes matching the given query."""
+
+    cypher_query = f"""
+        CALL () {{
+            MATCH r1=(:Patient {{wallet: '{query}'}})-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider)
+            RETURN r1 AS r
+        }}
+        RETURN r
+        UNION
+        CALL () {{
+            MATCH r2=(:Patient)-[:RECEIVED]->(:Vaccination {{tx_hash: '{query}'}})-[:ADMINISTERED_BY]->(:HealthcareProvider)
+            RETURN r2 AS r
+        }}
+        RETURN r
+        UNION
+        CALL () {{
+            MATCH r3=(:Patient)-[:RECEIVED]->(:Vaccination)-[:ADMINISTERED_BY]->(:HealthcareProvider {{wallet: '{query}'}})
+            RETURN r3 AS r
+        }}
+        RETURN r
+    """
+
+    async with driver.session() as session:
+        result = await session.run(cypher_query)
+        data = await result.data()
+        return extract_graph_data(data)

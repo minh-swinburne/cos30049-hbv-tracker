@@ -9,30 +9,43 @@ Authors:
 Group 3 - COS30049
 */
 
-import { FC, useEffect, useState } from "react";
+import { FC, useEffect, useRef, useState } from "react";
 import AppHeader from "../components/AppHeader";
+import type { EntityGraphMethods } from "../components/EntityGraph";
 import EntityGraph from "../components/EntityGraph";
 import EntityInfo from "../components/EntityInfo";
 import SearchBar from "../components/SearchBar";
+import { useStore } from "../store";
 import type { GraphNode } from "../types/graph";
 import type { VaccinationRecord } from "../types/vaccination";
+import apiClient from "../api";
 
 const Home: FC = () => {
   const [selectedEntity, setSelectedEntity] = useState<GraphNode | null>(null);
   const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
+  const { user } = useStore(); // Access the user from the store
+  const entityGraphRef = useRef<EntityGraphMethods | null>(null);
 
   useEffect(() => {
     // Remove graphData fetching logic
   }, []);
 
-  const handleSearch = (id: string): void => {
-    // Remove graphData dependency
-    alert("Search functionality is not implemented yet.");
+  const handleSearch = async (query: string) => {
+    const graphData = await apiClient.graph.searchNodes(query);
+    if (graphData) {
+      entityGraphRef.current?.setGraphData(graphData);
+    }
   };
 
   const handleNodeClick = (node: GraphNode): void => {
     setSelectedEntity(node);
-    // Remove relatedEntities logic
+  };
+
+  const handleEntityClose = (): void => {
+    setSelectedEntity(null); // Reset selected entity
+    if (user) {
+      entityGraphRef.current?.fetchGraphData(); // Reset the graph
+    }
   };
 
   return (
@@ -64,18 +77,18 @@ const Home: FC = () => {
         <div className="max-w-2xl mx-auto mb-8">
           <SearchBar
             onSearch={handleSearch}
-            placeholder="Enter wallet address or ID..."
+            placeholder="Enter wallet address or transaction hash..."
           />
         </div>
 
         {selectedEntity && (
           <div className="mb-8">
-            <EntityInfo entity={selectedEntity} />
+            <EntityInfo entity={selectedEntity} onClose={handleEntityClose} />
           </div>
         )}
 
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <EntityGraph onNodeClick={handleNodeClick} />
+          <EntityGraph ref={entityGraphRef} onNodeClick={handleNodeClick} />
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-6">

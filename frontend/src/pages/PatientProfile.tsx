@@ -8,8 +8,8 @@
 import { FC, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../api";
-import type { VaccinationRecord } from "../types/vaccination";
 import { useMetaMask } from "../hooks/useMetaMask";
+import type { VaccinationRecord } from "../types/vaccination";
 
 interface PatientProfileState {
   patient: Patient | null;
@@ -30,7 +30,7 @@ const PatientProfile: FC = () => {
 
   useEffect(() => {
     if (!isConnected || !account) {
-      navigate("/login");
+      navigate("/wallet");
       return;
     }
 
