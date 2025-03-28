@@ -13,6 +13,9 @@ async def secure_endpoint(
 ) -> AuthDetails:
     """
     Validate the access token and return its payload if valid.
+
+    - Ensures the token contains a valid Ethereum address and contract address.
+    - Verifies the token's contract address matches the application's contract address.
     """
     try:
         payload = verify_jwt_token(credentials.credentials)
